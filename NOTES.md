@@ -1,6 +1,6 @@
 # Personal Finance Tracker - Developer Notes
 
-## 🔧 Stack Overview
+## Stack Overview
 
 - **Backend**: Java 21 + Spring Boot 3.2
 - **Frontend**: HTML, CSS, JavaScript (vanilla or lightweight framework)
@@ -10,7 +10,7 @@
 
 ---
 
-## 👤 User Roles
+## User Roles
 
 - **User**:
   - Can register and log in
@@ -20,7 +20,7 @@
 
 ---
 
-## 📂 Java Project Structure (Spring Boot)
+## Java Project Structure (Spring Boot)
 
 - `model/` → JPA entity classes (e.g., User, Transaction, Category)
 - `controller/` → REST API controllers
@@ -30,7 +30,7 @@
 
 ---
 
-## 🛠 Planned REST API Endpoints
+## Planned REST API Endpoints
 
 ### AuthController
 - `POST /api/register` → Register new user

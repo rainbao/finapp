@@ -7,6 +7,7 @@ A full-stack web application that helps users manage their income, expenses, and
 ## ✨ Features
 
 - User registration and login
+- Budgeting
 - Add, edit, and delete financial transactions
 - Categorize expenses (e.g., Food, Rent, Utilities)
 - Visualizations:
