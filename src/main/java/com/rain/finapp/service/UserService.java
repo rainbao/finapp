@@ -25,9 +25,9 @@ public class UserService {
         userRepository.save(user);
     }
 
-    public List<User> findByLastName(String lastName) {
+    public List<User> findByUsername(String username) {
         return userRepository.findAll().stream()
-                .filter(user -> user.getLastName().equalsIgnoreCase(lastName))
+                .filter(user -> user.getUsername().equalsIgnoreCase(username))
                 .toList();
     }
 

@@ -20,7 +20,8 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request) {
         try {
-            authService.register(request.getFirstName(), request.getLastName(), request.getEmail(), request.getPassword());
+            // Call the service to register the user
+            authService.register(request.getUsername(), request.getEmail(), request.getPassword());
             return ResponseEntity.ok("Registration successful");
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body("Account with this email already exists");
@@ -29,6 +30,7 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request) {
+        // Call the service to authenticate the user
         String token = authService.login(request.getEmail(), request.getPassword());
         if (token != null) {
             return ResponseEntity.ok().body(new JwtResponse(token));

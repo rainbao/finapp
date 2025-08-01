@@ -28,9 +28,9 @@ public class UserTestController {
         userService.insertUser(user);
     }
 
-    @GetMapping("/test-users/last-name")
-    public List<User> findByLastName(String lastName) {
-        return userService.findByLastName(lastName);
+    @GetMapping("/test-users/user-name")
+    public List<User> findByUsername(String username) {
+        return userService.findByUsername(username);
     }
 
     @GetMapping("/test-users/{userId}")

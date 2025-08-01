@@ -17,11 +17,10 @@ public class AuthService {
         this.jwtUtil = jwtUtil;
     }
 
-    public User register(String firstName, String lastName, String email, String password) {
+    public User register(String username, String email, String password) {
         String hashedPassword = passwordEncoder.encode(password);
         User user = new User();
-        user.setFirstName(firstName);
-        user.setLastName(lastName);
+        user.setUsername(username);
         user.setEmail(email);
         user.setPassword(hashedPassword);
         return userRepository.save(user);
