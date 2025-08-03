@@ -13,20 +13,11 @@
         <h3>Budget Summary</h3>
         <!-- Budget summary will be loaded here -->
     </div>
-    <script>
-        // Redirect to login if not logged in
-        const userEmail = sessionStorage.getItem('userEmail');
-        if (!userEmail) {
-            window.location.href = "/login.html";
-        } else {
-            document.getElementById('userInfo').innerHTML = `<p>Welcome, ${userEmail}</p>`;
-            // Example fetch to get budget summary
-            fetch('/api/budget-summary')
-                .then(res => res.json())
-                .then(data => {
-                    document.getElementById('budgetSummary').innerHTML += `<p>Monthly Budget: $${data.monthlyBudget}</p>`;
-                });
-        }
-    </script>
+    
+    <!-- Load JavaScript modules -->
+    <script src="js/utils.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/dashboard.js"></script>
 </body>
 </html>

@@ -24,14 +24,14 @@ public class AuthController {
             authService.register(request.getUsername(), request.getEmail(), request.getPassword());
             return ResponseEntity.ok("Registration successful");
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).body("Account with this email already exists");
+            return ResponseEntity.status(HttpStatus.CONFLICT).body("Account with this email or username already exists");
         }
     }
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request) {
         // Call the service to authenticate the user
-        String token = authService.login(request.getEmail(), request.getPassword());
+        String token = authService.login(request.getUsername(), request.getPassword());
         if (token != null) {
             return ResponseEntity.ok().body(new JwtResponse(token));
         } else {

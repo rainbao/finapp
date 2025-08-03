@@ -41,10 +41,8 @@ public class JwtFilter extends OncePerRequestFilter {
             try {
                 Claims claims = jwtUtil.validateToken(token);
                 request.setAttribute("claims", claims);
-                String email = claims.get("email", String.class);
-                // Load user details using the email from claims
-
-                UserDetails userDetails = userDetailsService.loadUserByUsername(email);
+                String username = claims.get("username", String.class);
+                UserDetails userDetails = userDetailsService.loadUserByUsername(username);
                 Authentication auth = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
                 SecurityContextHolder.getContext().setAuthentication(auth);
                 //Create an authentication object and set it in the security context

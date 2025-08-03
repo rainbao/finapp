@@ -26,10 +26,10 @@ public class JwtUtil {
         key = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
     }
 
-    public String generateToken(UUID userId, String email) {
+    public String generateToken(UUID userId, String username) {
         return Jwts.builder()
                 .setSubject(userId.toString())
-                .claim("email", email)
+                .claim("username", username)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + expirationMs))
                 .signWith(key)
@@ -37,10 +37,18 @@ public class JwtUtil {
     }
 
     public Claims validateToken(String token) {
-        return Jwts.parserBuilder()
-                .setSigningKey(key)
-                .build()
-                .parseClaimsJws(token)
-                .getBody();
+        try {
+            System.out.println("Validating token: " + token.substring(0, Math.min(20, token.length())) + "...");
+            Claims claims = Jwts.parserBuilder()
+                    .setSigningKey(key)
+                    .build()
+                    .parseClaimsJws(token)
+                    .getBody();
+            System.out.println("Token validation successful. Username: " + claims.get("username"));
+            return claims;
+        } catch (Exception e) {
+            System.out.println("Token validation failed: " + e.getClass().getSimpleName() + " - " + e.getMessage());
+            throw e;
+        }
     }
 }

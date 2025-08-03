@@ -26,12 +26,12 @@ public class AuthService {
         return userRepository.save(user);
     }
 
-    public String login(String email, String password) {
-        Optional<User> userOpt = userRepository.findByEmail(email);
+    public String login(String username, String password) {
+        Optional<User> userOpt = userRepository.findByUsername(username);
         if (userOpt.isPresent()) {
             User user = userOpt.get();
             if (passwordEncoder.matches(password, user.getPassword())) {
-                return jwtUtil.generateToken(user.getUserId(), user.getEmail());
+                return jwtUtil.generateToken(user.getUserId(), user.getUsername());
             }
         }
         return null;
