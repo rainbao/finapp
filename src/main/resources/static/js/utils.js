@@ -6,12 +6,19 @@ class UIUtils {
      * Show error message to user
      */
     static showError(message, containerId = null) {
-        const errorHtml = `<p style="color: red;" class="error-message">${message}</p>`;
-        
         if (containerId) {
             const container = document.getElementById(containerId);
             if (container) {
-                container.innerHTML += errorHtml;
+                // Create a dedicated message div if it doesn't exist
+                let messageDiv = container.querySelector('.message-container');
+                if (!messageDiv) {
+                    messageDiv = document.createElement('div');
+                    messageDiv.className = 'message-container';
+                    container.appendChild(messageDiv);
+                }
+                
+                const errorHtml = `<p style="color: red; margin: 10px 0;" class="error-message">${message}</p>`;
+                messageDiv.innerHTML = errorHtml;
             }
         } else {
             // Show alert as fallback
@@ -23,12 +30,19 @@ class UIUtils {
      * Show success message to user
      */
     static showSuccess(message, containerId = null) {
-        const successHtml = `<p style="color: green;" class="success-message">${message}</p>`;
-        
         if (containerId) {
             const container = document.getElementById(containerId);
             if (container) {
-                container.innerHTML += successHtml;
+                // Create a dedicated message div if it doesn't exist
+                let messageDiv = container.querySelector('.message-container');
+                if (!messageDiv) {
+                    messageDiv = document.createElement('div');
+                    messageDiv.className = 'message-container';
+                    container.appendChild(messageDiv);
+                }
+                
+                const successHtml = `<p style="color: green; margin: 10px 0;" class="success-message">${message}</p>`;
+                messageDiv.innerHTML = successHtml;
             }
         }
     }
@@ -39,8 +53,10 @@ class UIUtils {
     static clearMessages(containerId) {
         const container = document.getElementById(containerId);
         if (container) {
-            const messages = container.querySelectorAll('.error-message, .success-message');
-            messages.forEach(msg => msg.remove());
+            const messageDiv = container.querySelector('.message-container');
+            if (messageDiv) {
+                messageDiv.innerHTML = '';
+            }
         }
     }
 

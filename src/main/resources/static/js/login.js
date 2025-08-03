@@ -17,7 +17,11 @@ class LoginController {
         event.preventDefault();
         
         const submitButton = document.querySelector('#loginForm button[type="submit"]');
-        UIUtils.showLoading('loginForm', 'Login');
+        const originalText = submitButton.textContent;
+        
+        // Show loading state
+        submitButton.disabled = true;
+        submitButton.textContent = 'Logging in...';
         UIUtils.clearMessages('loginForm');
 
         try {
@@ -37,9 +41,11 @@ class LoginController {
                 throw new Error(response?.message || 'Login failed');
             }
         } catch (error) {
-            UIUtils.showError(`Login failed: ${error.message}`, 'loginForm');
+            UIUtils.showError(`${error.message}`, 'loginForm');
         } finally {
-            UIUtils.hideLoading('loginForm');
+            // Hide loading state
+            submitButton.disabled = false;
+            submitButton.textContent = originalText;
         }
     }
 }

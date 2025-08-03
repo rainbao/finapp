@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JWT Debug</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <h2>JWT Debug</h2>
+    <div id="debugInfo"></div>
+    <button onclick="testLogin()">Test Login</button>
+    <button onclick="testMe()">Test /api/me</button>
+    
+    <!-- Load JavaScript modules -->
+    <script src="js/utils.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/api.js"></script>
+    
+    <script>
+        function testLogin() {
+            const username = prompt('Enter username:', 'firstuser');
+            const password = prompt('Enter password:', 'securepassword');
+            
+            if (username && password) {
+                window.apiClient.login(username, password)
+                    .then(data => {
+                        if (data && data.token) {
+                            window.authManager.setAuth(data.token, username);
+                            document.getElementById('debugInfo').innerHTML += `<p style="color: green;">Login successful! Token: ${data.token.substring(0, 50)}...</p>`;
+                        }
+                    })
+                    .catch(error => {
+                        document.getElementById('debugInfo').innerHTML += `<p style="color: red;">Login failed: ${error.message}</p>`;
+                    });
+            }
+        }
+        
+        function testMe() {
+            window.apiClient.getCurrentUser()
+                .then(data => {
+                    if (data) {
+                        document.getElementById('debugInfo').innerHTML += `<p style="color: green;">User data: ${JSON.stringify(data)}</p>`;
+                    }
+                })
+                .catch(error => {
+                    document.getElementById('debugInfo').innerHTML += `<p style="color: red;">API call failed: ${error.message}</p>`;
+                });
+        }
+        
+        // Show current stored token on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            const storedToken = window.authManager.getToken();
+            if (storedToken) {
+                document.getElementById('debugInfo').innerHTML += `<p>Stored Token: ${storedToken.substring(0, 50)}...</p>`;
+            } else {
+                document.getElementById('debugInfo').innerHTML += `<p>No token stored</p>`;
+            }
+        });
+    </script>
+</body>
+</html>

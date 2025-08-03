@@ -4,6 +4,14 @@
 class DashboardController {
     constructor() {
         this.initialize();
+        this.initializeEventListeners();
+    }
+
+    initializeEventListeners() {
+        const logoutBtn = document.getElementById('logoutBtn');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', this.logout.bind(this));
+        }
     }
 
     async initialize() {
@@ -34,7 +42,6 @@ class DashboardController {
             if (userData && !userData.error) {
                 const userInfoHtml = `
                     <p class="user-email">Email: ${userData.email}</p>
-                    <p class="user-id">User ID: ${userData.userId}</p>
                 `;
                 
                 const currentContent = document.getElementById('userInfo').innerHTML;
@@ -62,7 +69,9 @@ class DashboardController {
 
     // Method to handle logout (can be called from UI)
     logout() {
-        window.authManager.logout();
+        if (confirm('Are you sure you want to logout?')) {
+            window.authManager.logout();
+        }
     }
 }
 
