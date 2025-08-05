@@ -13,10 +13,23 @@
         <input type="text" id="username" name="username" required><br>
         <label for="password">Password:</label>
         <input type="password" id="password" name="password" required><br>
+        
+        <!-- Authentication Mode Selection -->
+        <div id="authModeSection" style="display: none;">
+            <label for="authMode">Authentication Method:</label>
+            <select id="authMode" name="authMode">
+                <option value="">Default</option>
+                <option value="jwt">JWT Token (sessionStorage)</option>
+                <option value="cookie">HTTP-only Cookie</option>
+                <option value="both">Both (JWT + Cookie)</option>
+            </select>
+            <small>Select how you want to be authenticated</small><br>
+        </div>
+        
         <button type="submit">Login</button>
     </form>
 
-    <p class = "user-prompt">Don't have an account? <a href="/register.html">Register here</a></p>
+    <p class="user-prompt">Don't have an account? <a href="/register.html">Register here</a></p>
 
     <!-- Load JavaScript modules -->
     <script src="js/utils.js"></script>

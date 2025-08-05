@@ -32,7 +32,26 @@ class DashboardController {
 
     showWelcomeMessage() {
         const username = window.authManager.getUsername();
-        UIUtils.updateElement('userInfo', `<p class="welcome-message">Hello, ${username}</p>`);
+        const authMode = window.authManager.getAuthMode();
+        const authModeDisplay = this.getAuthModeDisplay(authMode);
+        
+        UIUtils.updateElement('userInfo', `
+            <p class="welcome-message">Hello, ${username}</p>
+            <p class="auth-mode">Authentication: ${authModeDisplay}</p>
+        `);
+    }
+    
+    getAuthModeDisplay(mode) {
+        switch(mode) {
+            case 'jwt':
+                return 'JWT Token (sessionStorage)';
+            case 'cookie':
+                return 'HTTP-only Cookie';
+            case 'both':
+                return 'JWT + HTTP-only Cookie';
+            default:
+                return 'Unknown';
+        }
     }
 
     async loadUserData() {

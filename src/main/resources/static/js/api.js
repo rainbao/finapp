@@ -1,5 +1,6 @@
 /**
  * API client module - handles all API communications
+ * Supports both JWT and HTTP-only cookie authentication
  */
 class ApiClient {
     constructor() {
@@ -11,13 +12,19 @@ class ApiClient {
      */
     async request(url, options = {}) {
         try {
-            const response = await fetch(url, {
+            const authMode = window.authManager.getAuthMode();
+            
+            const requestOptions = {
                 headers: {
                     'Content-Type': 'application/json',
                     ...options.headers
                 },
+                // Always include credentials for cookie support
+                credentials: 'include',
                 ...options
-            });
+            };
+
+            const response = await fetch(url, requestOptions);
 
             // Handle 401 errors globally
             if (response.status === 401) {
@@ -40,8 +47,9 @@ class ApiClient {
     /**
      * Login user and return token
      */
-    async login(username, password) {
-        return this.request('/api/login', {
+    async login(username, password, authMode = null) {
+        const url = authMode ? `/api/login?authMode=${authMode}` : '/api/login';
+        return this.request(url, {
             method: 'POST',
             body: JSON.stringify({ username, password })
         });
@@ -74,6 +82,24 @@ class ApiClient {
         return this.request('/api/register', {
             method: 'POST',
             body: JSON.stringify({ username, email, password })
+        });
+    }
+
+    /**
+     * Get authentication configuration
+     */
+    async getAuthConfig() {
+        return this.request('/api/auth/config', {
+            method: 'GET'
+        });
+    }
+
+    /**
+     * Logout user
+     */
+    async logout() {
+        return this.request('/api/logout', {
+            method: 'POST'
         });
     }
 }
