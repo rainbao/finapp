@@ -1,7 +1,6 @@
 package com.rain.finapp.config;
 
 import com.rain.finapp.filter.JwtFilter;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -13,8 +12,12 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
-    @Autowired
-    private JwtFilter jwtFilter;
+    
+    private final JwtFilter jwtFilter;
+    
+    public SecurityConfig(JwtFilter jwtFilter) {
+        this.jwtFilter = jwtFilter;
+    }
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -29,7 +32,7 @@ public class SecurityConfig {
                     "/", "/index.html", 
                     "/css/**", "/js/**", "/images/**", "/static/**"
                 ).permitAll()
-                .requestMatchers("/api/me").authenticated()
+                .requestMatchers("/api/me", "/api/transactions/**").authenticated()
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);

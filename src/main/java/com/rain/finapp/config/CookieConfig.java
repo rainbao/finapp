@@ -7,13 +7,22 @@ import org.springframework.context.annotation.Configuration;
 @ConfigurationProperties(prefix = "cookie")
 public class CookieConfig {
     
+    private String name = "auth-token";
     private boolean secure = false;
-    private long maxAge = 604800; // 7 days in seconds
+    private long maxAge = 900; // Default 15 minutes if not specified
     private String sameSite = "Strict";
     private String path = "/";
     private boolean httpOnly = true; // Always true for security
     
     // Getters and setters
+    public String getName() {
+        return name;
+    }
+    
+    public void setName(String name) {
+        this.name = name;
+    }
+    
     public boolean isSecure() {
         return secure;
     }
