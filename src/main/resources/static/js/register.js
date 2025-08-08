@@ -54,7 +54,7 @@ class RegisterController {
                 // Redirect to login after a brief delay
                 setTimeout(() => {
                     window.location.href = "/login.html";
-                }, 2000);
+                }, 500);
             } else {
                 throw new Error('Registration failed');
             }

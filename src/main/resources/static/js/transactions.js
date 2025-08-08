@@ -17,7 +17,7 @@ class TransactionManager {
         try {
             const response = await window.apiClient.get('/api/transactions');
             this.transactions = response;
-            this.renderTransactions();
+            // Don't render immediately - let the caller decide when to render
             return response;
         } catch (error) {
             console.error('Error loading transactions:', error);
@@ -100,6 +100,12 @@ class TransactionManager {
             await window.apiClient.delete(`/api/transactions/${id}`);
             this.transactions = this.transactions.filter(t => t.transactionId !== id);
             this.renderTransactions();
+            
+            // Update dashboard stats if dashboard controller is available
+            if (window.dashboardController) {
+                window.dashboardController.updateStats();
+            }
+            
             this.showMessage('Transaction deleted successfully!');
         } catch (error) {
             console.error('Error deleting transaction:', error);
@@ -143,20 +149,42 @@ class TransactionManager {
         const container = document.getElementById('transactionList');
         if (!container) return;
 
-        if (this.transactions.length === 0) {
+        // Group transactions by category
+        const groupedTransactions = this.groupTransactionsByCategory();
+        
+        // Get all categories (including those without transactions)
+        // Start with categories from the backend (in timestamp order)
+        const allCategories = [...(Array.isArray(this.categories) ? this.categories : [])];
+        
+        // Add any categories that exist only in transactions but not in stored categories
+        Object.keys(groupedTransactions).forEach(category => {
+            if (!allCategories.includes(category)) {
+                allCategories.push(category);
+            }
+        });
+        
+        // If no categories exist at all, show empty state
+        if (allCategories.length === 0) {
             container.innerHTML = `
                 <div class="no-transactions">
-                    <p>No transactions yet. Create your first transaction!</p>
+                    <p>No categories yet. Create your first transaction or add a category!</p>
                 </div>
             `;
             return;
         }
 
-        // Group transactions by category
-        const groupedTransactions = this.groupTransactionsByCategory();
+        // Render all categories, keeping Income first but preserving timestamp order for others
+        const sortedCategories = allCategories.sort((a, b) => {
+            // Income category always comes first
+            if (a === 'Income') return -1;
+            if (b === 'Income') return 1;
+            // For other categories, maintain the order they appear in the allCategories array
+            // (which preserves the timestamp order from backend)
+            return allCategories.indexOf(b) - allCategories.indexOf(a);
+        });
         
-        container.innerHTML = Object.keys(groupedTransactions)
-            .map(category => this.renderCategorySection(category, groupedTransactions[category]))
+        container.innerHTML = sortedCategories
+            .map(category => this.renderCategorySection(category, groupedTransactions[category] || []))
             .join('');
     }
 
@@ -178,27 +206,62 @@ class TransactionManager {
      * Render a category section with its transactions
      */
     renderCategorySection(category, transactions) {
-        const totalAmount = transactions.reduce((sum, t) => sum + parseFloat(t.amount), 0);
+        // Calculate total expenses for this category
+        const totalAmount = transactions
+            .filter(t => t.type === 'EXPENSE')
+            .reduce((sum, t) => sum + parseFloat(t.amount), 0);
         
-        // Check if this category has a budget
+        // Check if this category has a budget (not for Income)
         const budgetInfo = this.categoryBudgets[category];
         let budgetDisplay = '';
         
-        if (budgetInfo && budgetInfo.budget > 0) {
+        // Only show budget info for non-Income categories
+        if (category !== 'Income' && 
+            budgetInfo && 
+            budgetInfo.budget !== null && 
+            budgetInfo.budget !== undefined && 
+            typeof budgetInfo.budget === 'number' && 
+            budgetInfo.budget > 0) {
+            
             const spent = parseFloat(budgetInfo.spent || 0);
             const budget = parseFloat(budgetInfo.budget);
             const percentage = budget > 0 ? (spent / budget) * 100 : 0;
             
-            // Determine color based on percentage
-            let budgetColor = '#28a745'; // Green
-            if (percentage > 90) budgetColor = '#dc3545'; // Red
-            else if (percentage > 75) budgetColor = '#ffc107'; // Yellow
+            // Determine color based on percentage (traditional budget tracking)
+            let budgetColor = '#28a745'; // Green - under budget
+            if (percentage > 100) budgetColor = '#dc3545'; // Red - over budget
+            else if (percentage > 90) budgetColor = '#ffc107'; // Yellow - close to budget
             
             budgetDisplay = `
                 <span class="budget-info" style="color: ${budgetColor};">
                     $${spent.toFixed(2)} / $${budget.toFixed(2)}
                     <span class="budget-percentage">(${percentage.toFixed(0)}%)</span>
                 </span>
+            `;
+        }
+
+        // Build action buttons based on category type
+        let actionButtons = '';
+        
+        if (category === 'Income') {
+            // Income category: no budget options, no delete option
+            actionButtons = `
+                <span class="category-total" title="Total income">$${transactions.reduce((sum, t) => sum + parseFloat(t.amount), 0).toFixed(2)}</span>
+                <button class="btn-add-transaction" onclick="window.dashboardController.showTransactionModal('${category}')">
+                    + Add Income
+                </button>
+            `;
+        } else {
+            // Regular expense categories: budget options and delete option
+            actionButtons = `
+                <span class="category-total" title="Total expenses in this category">$${totalAmount.toFixed(2)}</span>
+                <button class="btn-set-budget" onclick="window.transactionManager.showBudgetModal('${category}')">
+                    ${budgetInfo && budgetInfo.budget > 0 ? 'Edit Budget' : 'Set Budget'}
+                </button>
+                <button class="btn-add-transaction" onclick="window.dashboardController.showTransactionModal('${category}')">
+                    + Add Transaction
+                </button>
+                ${transactions.length === 0 ? `<button class="btn-delete-category" onclick="window.transactionManager.deleteCategory('${category}')" title="Delete empty category">🗑️</button>` : ''}
             `;
         }
         
@@ -210,17 +273,11 @@ class TransactionManager {
                         ${budgetDisplay}
                     </div>
                     <div class="category-actions">
-                        <span class="category-total">$${totalAmount.toFixed(2)}</span>
-                        <button class="btn-set-budget" onclick="window.transactionManager.showBudgetModal('${category}')">
-                            ${budgetInfo && budgetInfo.budget > 0 ? 'Edit Budget' : 'Set Budget'}
-                        </button>
-                        <button class="btn-add-transaction" onclick="window.dashboardController.showTransactionModal('${category}')">
-                            + Add Transaction
-                        </button>
+                        ${actionButtons}
                     </div>
                 </div>
                 <div class="transactions-list">
-                    ${transactions.map(t => this.renderTransaction(t)).join('')}
+                    ${transactions.length > 0 ? transactions.map(t => this.renderTransaction(t)).join('') : '<p class="no-transactions-in-category">No transactions in this category yet.</p>'}
                 </div>
             </div>
         `;
@@ -231,12 +288,18 @@ class TransactionManager {
      */
     renderTransaction(transaction) {
         const date = new Date(transaction.transactionDate).toLocaleDateString();
-        const amount = parseFloat(transaction.amount).toFixed(2);
+        const amount = parseFloat(transaction.amount);
+        const isIncome = transaction.type === 'INCOME';
+        const amountClass = isIncome ? 'transaction-amount income' : 'transaction-amount expense';
+
+        // Show negative for expenses, positive for income
+        const displayAmount = isIncome ? amount : -amount;
+        const formattedAmount = displayAmount >= 0 ? `+$${displayAmount.toFixed(2)}` : `-$${Math.abs(displayAmount).toFixed(2)}`;
         
         return `
             <div class="transaction-item" data-id="${transaction.transactionId}">
                 <div class="transaction-info">
-                    <span class="transaction-amount">$${amount}</span>
+                    <span class="${amountClass}">${formattedAmount}</span>
                     <span class="transaction-description">${transaction.description || 'No description'}</span>
                     <span class="transaction-date">${date}</span>
                 </div>
@@ -259,18 +322,30 @@ class TransactionManager {
         event.preventDefault();
         
         const formData = UIUtils.getFormData('transactionForm');
-        const { amount, category, description, date } = formData;
+        let { amount, category, description, date, type } = formData;
 
-        if (!amount || !category) {
-            this.showMessage('Amount and category are required', 'error');
+        if (!amount || !type) {
+            this.showMessage('Amount and type are required', 'error');
             return;
+        }
+
+        // For income transactions, automatically use "Income" category
+        if (type === 'INCOME') {
+            category = 'Income';
+        } else {
+            // For expense transactions, category is required
+            if (!category) {
+                this.showMessage('Category is required for expense transactions', 'error');
+                return;
+            }
         }
 
         const transactionData = {
             amount: parseFloat(amount),
             category: category.trim(),
             description: description ? description.trim() : null,
-            transactionDate: date ? new Date(date).toISOString() : null
+            transactionDate: date ? new Date(date).toISOString() : null,
+            type: type
         };
 
         try {
@@ -374,6 +449,11 @@ class TransactionManager {
         const select = document.getElementById('transactionCategory');
         if (!select) return;
 
+        // Ensure categories is an array
+        if (!Array.isArray(this.categories)) {
+            return;
+        }
+
         // Keep existing options, just add new categories
         const existingOptions = Array.from(select.options).map(option => option.value);
         
@@ -385,6 +465,34 @@ class TransactionManager {
                 select.appendChild(option);
             }
         });
+    }
+
+    /**
+     * Delete a category
+     */
+    async deleteCategory(categoryName) {
+        if (!confirm(`Are you sure you want to delete the category "${categoryName}"? This action cannot be undone.`)) {
+            return;
+        }
+
+        try {
+            await window.apiClient.delete(`/api/transactions/categories/${encodeURIComponent(categoryName)}`);
+            
+            // Remove from local categories array if it exists and is an array
+            if (Array.isArray(this.categories)) {
+                this.categories = this.categories.filter(cat => cat !== categoryName);
+            }
+            
+            // Refresh the display
+            await this.loadCategories();
+            this.renderTransactions();
+            this.renderCategoryOptions();
+            
+            this.showMessage(`Category "${categoryName}" deleted successfully`);
+        } catch (error) {
+            console.error('Error deleting category:', error);
+            this.showMessage(`Failed to delete category: ${error.message}`, 'error');
+        }
     }
 }
 

@@ -15,6 +15,9 @@ public interface CategoryRepository extends JpaRepository<Category, UUID> {
     // Find all categories for a specific user
     List<Category> findByUserOrderByNameAsc(User user);
 
+    // Find all categories for a specific user ordered by creation timestamp (newest first)
+    List<Category> findByUserOrderByCreatedAtDesc(User user);
+
     // Find a category by name and user
     Optional<Category> findByUserAndName(User user, String name);
 

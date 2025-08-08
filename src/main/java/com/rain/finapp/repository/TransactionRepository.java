@@ -40,4 +40,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
     // Find recent transactions (last 30 days)
     @Query("SELECT t FROM Transaction t WHERE t.user = :user AND t.transactionDate >= :thirtyDaysAgo ORDER BY t.transactionDate DESC")
     List<Transaction> findRecentTransactionsByUser(@Param("user") User user, @Param("thirtyDaysAgo") OffsetDateTime thirtyDaysAgo);
+
+    // Find transactions by user and category
+    List<Transaction> findTransactionsByUserAndCategory(User user, String category);
 }

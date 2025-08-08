@@ -24,6 +24,10 @@ public class Transaction {
     @Column(nullable = false, length = 100)
     private String category;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = true, length = 20) // Temporarily nullable for migration
+    private TransactionType type = TransactionType.EXPENSE; // Default to expense for backward compatibility
+
     @Column(nullable = false)
     private OffsetDateTime transactionDate;
 
@@ -58,6 +62,16 @@ public class Transaction {
         this.amount = amount;
         this.category = category;
         this.description = description;
+        this.type = TransactionType.EXPENSE; // Default to expense
+        this.transactionDate = OffsetDateTime.now();
+    }
+
+    public Transaction(User user, BigDecimal amount, String category, String description, TransactionType type) {
+        this.user = user;
+        this.amount = amount;
+        this.category = category;
+        this.description = description;
+        this.type = type;
         this.transactionDate = OffsetDateTime.now();
     }
 
@@ -92,6 +106,14 @@ public class Transaction {
 
     public void setCategory(String category) {
         this.category = category;
+    }
+
+    public TransactionType getType() {
+        return type;
+    }
+
+    public void setType(TransactionType type) {
+        this.type = type;
     }
 
     public OffsetDateTime getTransactionDate() {

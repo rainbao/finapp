@@ -1,5 +1,6 @@
 package com.rain.finapp.dto;
 
+import com.rain.finapp.model.TransactionType;
 import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
@@ -18,15 +19,19 @@ public class TransactionRequest {
     @Size(max = 500, message = "Description must not exceed 500 characters")
     private String description;
 
+    @NotNull(message = "Transaction type is required")
+    private TransactionType type;
+
     private OffsetDateTime transactionDate;
 
     // Constructors
     public TransactionRequest() {}
 
-    public TransactionRequest(BigDecimal amount, String category, String description, OffsetDateTime transactionDate) {
+    public TransactionRequest(BigDecimal amount, String category, String description, TransactionType type, OffsetDateTime transactionDate) {
         this.amount = amount;
         this.category = category;
         this.description = description;
+        this.type = type;
         this.transactionDate = transactionDate;
     }
 
@@ -63,12 +68,21 @@ public class TransactionRequest {
         this.transactionDate = transactionDate;
     }
 
+    public TransactionType getType() {
+        return type;
+    }
+
+    public void setType(TransactionType type) {
+        this.type = type;
+    }
+
     @Override
     public String toString() {
         return "TransactionRequest{" +
                 "amount=" + amount +
                 ", category='" + category + '\'' +
                 ", description='" + description + '\'' +
+                ", type=" + type +
                 ", transactionDate=" + transactionDate +
                 '}';
     }

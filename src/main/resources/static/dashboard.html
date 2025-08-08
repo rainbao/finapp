@@ -27,12 +27,24 @@
         <section class="stats-section">
             <div class="stats-grid">
                 <div class="stat-card">
-                    <h3>Total Transactions</h3>
-                    <span id="totalTransactions" class="stat-value">0</span>
+                    <h3>Total Income</h3>
+                    <span id="totalIncome" class="stat-value income">$0.00</span>
                 </div>
                 <div class="stat-card">
-                    <h3>This Month</h3>
-                    <span id="monthlyTotal" class="stat-value">$0.00</span>
+                    <h3>Total Expenses</h3>
+                    <span id="totalExpenses" class="stat-value expense">$0.00</span>
+                </div>
+                <div class="stat-card">
+                    <h3>Net Balance</h3>
+                    <span id="netBalance" class="stat-value">$0.00</span>
+                </div>
+                <div class="stat-card budget-card">
+                    <h3>Monthly Budget</h3>
+                    <span id="budgetStatus" class="stat-value">Set Budget</span>
+                    <div id="budgetProgress" class="budget-progress-bar" style="display: none;">
+                        <div id="budgetProgressFill" class="budget-progress-fill"></div>
+                    </div>
+                    <button id="setBudgetBtn" class="btn-set-budget-small">Set</button>
                 </div>
                 <div class="stat-card">
                     <h3>Categories</h3>
@@ -62,6 +74,13 @@
             <!-- Add Category Section -->
             <div class="add-category-section">
                 <button id="addCategoryBtn" class="btn-outline-large">+ Add New Category</button>
+                <div id="newCategoryInput" class="new-category-input" style="display: none;">
+                    <input type="text" id="categoryNameInput" placeholder="Enter category name..." maxlength="50">
+                    <div class="category-input-actions">
+                        <button id="saveCategoryBtn" class="btn-primary btn-small">Save</button>
+                        <button id="cancelCategoryBtn" class="btn-secondary btn-small">Cancel</button>
+                    </div>
+                </div>
             </div>
         </section>
     </main>
@@ -74,9 +93,18 @@
                 <button id="closeModal" class="close-btn">&times;</button>
             </div>
             <form id="transactionForm" class="transaction-form">
+                
                 <div class="form-group">
                     <label for="transactionAmount">Amount *</label>
                     <input type="number" id="transactionAmount" name="amount" step="0.01" min="0.01" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="transactionType">Type *</label>
+                    <select id="transactionType" name="type" required>
+                        <option value="EXPENSE">Expense</option>
+                        <option value="INCOME">Income</option>
+                    </select>
                 </div>
                 
                 <div class="form-group">

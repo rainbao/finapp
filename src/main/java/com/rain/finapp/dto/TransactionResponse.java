@@ -1,5 +1,6 @@
 package com.rain.finapp.dto;
 
+import com.rain.finapp.model.TransactionType;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.UUID;
@@ -13,6 +14,7 @@ public class TransactionResponse {
     private String category;
     private OffsetDateTime transactionDate;
     private String description;
+    private TransactionType type;
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
 
@@ -21,7 +23,7 @@ public class TransactionResponse {
 
     public TransactionResponse(UUID transactionId, UUID userId, String username, BigDecimal amount, 
                              String category, OffsetDateTime transactionDate, String description,
-                             OffsetDateTime createdAt, OffsetDateTime updatedAt) {
+                             TransactionType type, OffsetDateTime createdAt, OffsetDateTime updatedAt) {
         this.transactionId = transactionId;
         this.userId = userId;
         this.username = username;
@@ -29,6 +31,7 @@ public class TransactionResponse {
         this.category = category;
         this.transactionDate = transactionDate;
         this.description = description;
+        this.type = type;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
@@ -90,6 +93,14 @@ public class TransactionResponse {
         this.description = description;
     }
 
+    public TransactionType getType() {
+        return type;
+    }
+
+    public void setType(TransactionType type) {
+        this.type = type;
+    }
+
     public OffsetDateTime getCreatedAt() {
         return createdAt;
     }
@@ -115,6 +126,7 @@ public class TransactionResponse {
                 ", category='" + category + '\'' +
                 ", transactionDate=" + transactionDate +
                 ", description='" + description + '\'' +
+                ", type=" + type +
                 '}';
     }
 }

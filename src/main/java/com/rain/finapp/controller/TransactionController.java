@@ -174,4 +174,55 @@ public class TransactionController {
         
         return ResponseEntity.ok(response);
     }
+
+    /**
+     * Create a new category
+     * POST /api/transactions/categories
+     */
+    @PostMapping("/categories")
+    public ResponseEntity<Map<String, String>> createCategory(
+            @RequestParam String name,
+            Authentication authentication) {
+        
+        String username = authentication.getName();
+        
+        try {
+            transactionService.createCategory(username, name);
+            
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Category created successfully");
+            response.put("name", name);
+            
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            Map<String, String> errorResponse = new HashMap<>();
+            errorResponse.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(errorResponse);
+        }
+    }
+
+    /**
+     * DELETE /api/transactions/categories/{categoryName}
+     */
+    @DeleteMapping("/categories/{categoryName}")
+    public ResponseEntity<Map<String, String>> deleteCategory(
+            @PathVariable String categoryName,
+            Authentication authentication) {
+        
+        String username = authentication.getName();
+        
+        try {
+            transactionService.deleteCategory(username, categoryName);
+            
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Category deleted successfully");
+            response.put("name", categoryName);
+            
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            Map<String, String> errorResponse = new HashMap<>();
+            errorResponse.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(errorResponse);
+        }
+    }
 }

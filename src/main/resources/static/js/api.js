@@ -151,6 +151,13 @@ class ApiClient {
             method: 'POST'
         });
     }
+
+    /**
+     * Create a new category
+     */
+    async createCategory(categoryName) {
+        return this.post(`/api/transactions/categories?name=${encodeURIComponent(categoryName)}`, null);
+    }
 }
 
 // Create global API client instance

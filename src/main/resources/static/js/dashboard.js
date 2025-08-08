@@ -4,6 +4,7 @@
 class DashboardController {
     constructor() {
         this.transactionManager = null;
+        this.monthlyBudget = parseFloat(localStorage.getItem('monthlyBudget')) || 0;
         this.initialize();
         this.initializeEventListeners();
     }
@@ -21,6 +22,12 @@ class DashboardController {
             addTransactionBtn.addEventListener('click', () => {
                 this.showTransactionModal();
             });
+        }
+
+        // Monthly budget button
+        const setBudgetBtn = document.getElementById('setBudgetBtn');
+        if (setBudgetBtn) {
+            setBudgetBtn.addEventListener('click', this.showBudgetModal.bind(this));
         }
 
         // Modal controls
@@ -48,7 +55,40 @@ class DashboardController {
         const addCategoryBtn = document.getElementById('addCategoryBtn');
         if (addCategoryBtn) {
             addCategoryBtn.addEventListener('click', () => {
-                this.showTransactionModal('', true);
+                this.showCategoryInput();
+            });
+        }
+
+        // Category input controls
+        const saveCategoryBtn = document.getElementById('saveCategoryBtn');
+        const cancelCategoryBtn = document.getElementById('cancelCategoryBtn');
+        const categoryNameInput = document.getElementById('categoryNameInput');
+
+        if (saveCategoryBtn) {
+            saveCategoryBtn.addEventListener('click', () => {
+                this.saveNewCategory();
+            });
+        }
+
+        if (cancelCategoryBtn) {
+            cancelCategoryBtn.addEventListener('click', () => {
+                this.hideCategoryInput();
+            });
+        }
+
+        if (categoryNameInput) {
+            // Save on Enter key
+            categoryNameInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    this.saveNewCategory();
+                }
+            });
+
+            // Cancel on Escape key
+            categoryNameInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    this.hideCategoryInput();
+                }
             });
         }
 
@@ -60,6 +100,12 @@ class DashboardController {
                     this.hideTransactionModal();
                 }
             });
+        }
+
+        // Transaction type change handler
+        const transactionType = document.getElementById('transactionType');
+        if (transactionType) {
+            transactionType.addEventListener('change', this.handleTransactionTypeChange.bind(this));
         }
     }
 
@@ -120,6 +166,9 @@ class DashboardController {
                 this.transactionManager.loadCategoryBudgets()
             ]);
 
+            // Now render transactions with all data loaded
+            this.transactionManager.renderTransactions();
+
             // Update stats
             this.updateStats();
 
@@ -136,23 +185,91 @@ class DashboardController {
         const transactions = this.transactionManager.transactions;
         const categories = this.transactionManager.categories;
 
-        // Total transactions
-        document.getElementById('totalTransactions').textContent = transactions.length;
+        // Calculate income and expenses
+        const totalIncome = transactions
+            .filter(t => t.type === 'INCOME')
+            .reduce((sum, t) => sum + parseFloat(t.amount), 0);
+
+        const totalExpenses = transactions
+            .filter(t => t.type === 'EXPENSE')
+            .reduce((sum, t) => sum + parseFloat(t.amount), 0);
+
+        const netBalance = totalIncome - totalExpenses;
+
+        // Update UI elements
+        document.getElementById('totalIncome').textContent = `$${totalIncome.toFixed(2)}`;
+        document.getElementById('totalExpenses').textContent = `$${totalExpenses.toFixed(2)}`;
+        
+        const netBalanceElement = document.getElementById('netBalance');
+        // Format negative amounts as -$X.XX instead of $-X.XX
+        if (netBalance < 0) {
+            netBalanceElement.textContent = `-$${Math.abs(netBalance).toFixed(2)}`;
+        } else {
+            netBalanceElement.textContent = `$${netBalance.toFixed(2)}`;
+        }
+        
+        // Color the net balance based on positive/negative
+        netBalanceElement.className = 'stat-value';
+        if (netBalance > 0) {
+            netBalanceElement.classList.add('income');
+        } else if (netBalance < 0) {
+            netBalanceElement.classList.add('expense');
+        }
+
+        // Update budget status
+        this.updateBudgetStatus(totalExpenses);
 
         // Total categories
         document.getElementById('totalCategories').textContent = categories.length;
+    }
 
-        // Monthly total (current month)
-        const currentMonth = new Date().getMonth();
-        const currentYear = new Date().getFullYear();
-        const monthlyTotal = transactions
-            .filter(t => {
-                const date = new Date(t.transactionDate);
-                return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
-            })
-            .reduce((sum, t) => sum + parseFloat(t.amount), 0);
+    updateBudgetStatus(totalExpenses) {
+        const budgetStatusElement = document.getElementById('budgetStatus');
+        const budgetProgressBar = document.getElementById('budgetProgress');
+        const budgetProgressFill = document.getElementById('budgetProgressFill');
 
-        document.getElementById('monthlyTotal').textContent = `$${monthlyTotal.toFixed(2)}`;
+        if (this.monthlyBudget > 0) {
+            const percentage = (totalExpenses / this.monthlyBudget) * 100;
+            const remaining = this.monthlyBudget - totalExpenses;
+            
+            budgetStatusElement.textContent = `$${totalExpenses.toFixed(2)} / $${this.monthlyBudget.toFixed(2)}`;
+            budgetProgressBar.style.display = 'block';
+            budgetProgressFill.style.width = `${Math.min(percentage, 100)}%`;
+            
+            // Color based on percentage
+            budgetProgressFill.className = 'budget-progress-fill';
+            budgetStatusElement.className = 'stat-value';
+            
+            if (percentage > 100) {
+                budgetProgressFill.classList.add('over-budget');
+                budgetStatusElement.classList.add('expense');
+            } else if (percentage > 90) {
+                budgetProgressFill.classList.add('warning');
+            } else {
+                budgetStatusElement.classList.add('income');
+            }
+        } else {
+            budgetStatusElement.textContent = 'Set Budget';
+            budgetStatusElement.className = 'stat-value';
+            budgetProgressBar.style.display = 'none';
+        }
+    }
+
+    showBudgetModal() {
+        const currentBudget = this.monthlyBudget > 0 ? this.monthlyBudget.toFixed(2) : '';
+        const budgetInput = prompt(`Set your monthly budget:\n(Current: $${currentBudget || '0.00'})`, currentBudget);
+        
+        if (budgetInput !== null && budgetInput.trim() !== '') {
+            const budgetAmount = parseFloat(budgetInput);
+            if (!isNaN(budgetAmount) && budgetAmount > 0) {
+                this.monthlyBudget = budgetAmount;
+                localStorage.setItem('monthlyBudget', budgetAmount.toString());
+                this.updateStats(); // Refresh the display
+                this.showMessage(`Monthly budget set to $${budgetAmount.toFixed(2)}!`, 'success');
+            } else {
+                this.showMessage('Please enter a valid budget amount greater than 0', 'error');
+            }
+        }
     }
 
     populateCategoryFilter() {
@@ -194,6 +311,13 @@ class DashboardController {
         // Reset form
         form.reset();
         this.transactionManager.currentEditingId = null;
+        
+        // Set transaction type based on category
+        if (category === 'Income') {
+            document.getElementById('transactionType').value = 'INCOME';
+        } else {
+            document.getElementById('transactionType').value = 'EXPENSE';
+        }
 
         // Set category if provided
         if (category) {
@@ -202,6 +326,9 @@ class DashboardController {
 
         // Set title
         modalTitle.textContent = 'Add Transaction';
+
+        // Set initial category field state based on transaction type
+        this.handleTransactionTypeChange();
 
         // Show modal
         modal.style.display = 'flex';
@@ -220,6 +347,37 @@ class DashboardController {
         const modal = document.getElementById('transactionModal');
         if (modal) {
             modal.style.display = 'none';
+        }
+    }
+
+    handleTransactionTypeChange() {
+        const typeSelect = document.getElementById('transactionType');
+        const categoryField = document.getElementById('transactionCategory');
+        const categoryLabel = document.querySelector('label[for="transactionCategory"]');
+        
+        if (!typeSelect || !categoryField) return;
+        
+        const selectedType = typeSelect.value;
+        
+        if (selectedType === 'INCOME') {
+            // For income transactions, disable and preset the category
+            categoryField.value = 'Income';
+            categoryField.disabled = true;
+            categoryField.required = false;
+            if (categoryLabel) {
+                categoryLabel.textContent = 'Category (Auto-set to Income)';
+            }
+        } else {
+            // For expense transactions, enable the category field
+            categoryField.disabled = false;
+            categoryField.required = true;
+            // Only clear the value if it's currently "Income" or empty
+            if (categoryField.value === 'Income' || categoryField.value === '') {
+                categoryField.value = '';
+            }
+            if (categoryLabel) {
+                categoryLabel.textContent = 'Category';
+            }
         }
     }
 
@@ -312,6 +470,100 @@ class DashboardController {
         }
     }
 
+    // Category creation methods
+    showCategoryInput() {
+        const addCategoryBtn = document.getElementById('addCategoryBtn');
+        const newCategoryInput = document.getElementById('newCategoryInput');
+        const categoryNameInput = document.getElementById('categoryNameInput');
+
+        if (addCategoryBtn && newCategoryInput && categoryNameInput) {
+            addCategoryBtn.style.display = 'none';
+            newCategoryInput.style.display = 'block';
+            
+            // Focus the input and clear any previous value
+            categoryNameInput.value = '';
+            setTimeout(() => {
+                categoryNameInput.focus();
+            }, 100);
+        }
+    }
+
+    hideCategoryInput() {
+        const addCategoryBtn = document.getElementById('addCategoryBtn');
+        const newCategoryInput = document.getElementById('newCategoryInput');
+        const categoryNameInput = document.getElementById('categoryNameInput');
+
+        if (addCategoryBtn && newCategoryInput && categoryNameInput) {
+            newCategoryInput.style.display = 'none';
+            addCategoryBtn.style.display = 'block';
+            categoryNameInput.value = '';
+        }
+    }
+
+    async saveNewCategory() {
+        const categoryNameInput = document.getElementById('categoryNameInput');
+        const saveCategoryBtn = document.getElementById('saveCategoryBtn');
+        
+        if (!categoryNameInput || !saveCategoryBtn) return;
+
+        const categoryName = categoryNameInput.value.trim();
+        
+        if (!categoryName) {
+            categoryNameInput.focus();
+            return;
+        }
+
+        // Check if category already exists
+        if (this.transactionManager.categories.includes(categoryName)) {
+            this.showMessage(`Category "${categoryName}" already exists`, 'error');
+            categoryNameInput.focus();
+            categoryNameInput.select();
+            return;
+        }
+
+        // Show loading state
+        const originalText = saveCategoryBtn.textContent;
+        saveCategoryBtn.disabled = true;
+        saveCategoryBtn.textContent = 'Saving...';
+
+        try {
+            // Create the category using the dedicated API endpoint
+            await window.apiClient.createCategory(categoryName);
+            
+            // Reload categories to include the new one
+            await this.transactionManager.loadCategories();
+            this.populateCategoryFilter();
+            
+            // Refresh the transaction display to show the new category
+            this.transactionManager.renderTransactions();
+            
+            this.hideCategoryInput();
+            this.showMessage(`Category "${categoryName}" created successfully!`, 'success');
+
+        } catch (error) {
+            console.error('Error creating category:', error);
+            this.showMessage(`Failed to create category: ${error.message}`, 'error');
+            categoryNameInput.focus();
+        } finally {
+            saveCategoryBtn.disabled = false;
+            saveCategoryBtn.textContent = originalText;
+        }
+    }
+
+    showMessage(message, type = 'success') {
+        // Use the transaction manager's message system
+        if (this.transactionManager) {
+            this.transactionManager.showMessage(message, type);
+        } else {
+            // Fallback to UIUtils
+            if (type === 'error') {
+                UIUtils.showError(message);
+            } else {
+                UIUtils.showSuccess(message);
+            }
+        }
+    }
+
     // Methods for transaction actions (called from transaction manager)
     async editTransaction(id) {
         const transaction = this.transactionManager.transactions.find(t => t.transactionId === id);
@@ -327,6 +579,7 @@ class DashboardController {
         this.transactionManager.currentEditingId = id;
         
         document.getElementById('transactionAmount').value = transaction.amount;
+        document.getElementById('transactionType').value = transaction.type || 'EXPENSE';
         document.getElementById('transactionCategory').value = transaction.category;
         document.getElementById('transactionDescription').value = transaction.description || '';
         
@@ -334,6 +587,9 @@ class DashboardController {
             const date = new Date(transaction.transactionDate);
             document.getElementById('transactionDate').value = date.toISOString().split('T')[0];
         }
+
+        // Update category field state based on transaction type
+        this.handleTransactionTypeChange();
 
         modalTitle.textContent = 'Edit Transaction';
         modal.style.display = 'flex';

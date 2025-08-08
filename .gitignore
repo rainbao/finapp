@@ -35,3 +35,12 @@ build/
 
 ### Environment Variables ###
 .env
+
+### .bat ###
+start-app.bat
+start-app-secure.bat
+start-app-dev.bat
+
+### Secure Startup Scripts ###
+start-app-secure.bat
+start-app.ps1

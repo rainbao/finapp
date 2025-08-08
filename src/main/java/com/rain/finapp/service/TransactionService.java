@@ -4,6 +4,7 @@ import com.rain.finapp.dto.TransactionRequest;
 import com.rain.finapp.dto.TransactionResponse;
 import com.rain.finapp.model.Category;
 import com.rain.finapp.model.Transaction;
+import com.rain.finapp.model.TransactionType;
 import com.rain.finapp.model.User;
 import com.rain.finapp.repository.CategoryRepository;
 import com.rain.finapp.repository.TransactionRepository;
@@ -13,10 +14,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -47,6 +51,7 @@ public class TransactionService {
         transaction.setAmount(request.getAmount());
         transaction.setCategory(request.getCategory());
         transaction.setDescription(request.getDescription());
+        transaction.setType(request.getType());
         
         // Use provided date or default to now
         if (request.getTransactionDate() != null) {
@@ -152,7 +157,19 @@ public class TransactionService {
     @Transactional(readOnly = true)
     public List<String> getUserCategories(String username) {
         User user = getUserByUsername(username);
-        return transactionRepository.findDistinctCategoriesByUser(user);
+        
+        // Get categories from the categories table ordered by creation timestamp
+        List<Category> savedCategories = categoryRepository.findByUserOrderByCreatedAtDesc(user);
+        Set<String> allCategories = savedCategories.stream()
+                .map(Category::getName)
+                .collect(Collectors.toCollection(LinkedHashSet::new)); // Use LinkedHashSet to preserve order
+        
+        // Also include categories that appear in transactions but might not be in categories table
+        List<String> transactionCategories = transactionRepository.findDistinctCategoriesByUser(user);
+        allCategories.addAll(transactionCategories);
+        
+        // Convert to list while preserving the timestamp order for saved categories
+        return new ArrayList<>(allCategories);
     }
 
     /**
@@ -178,7 +195,8 @@ public class TransactionService {
     }
 
     /**
-     * Get category budgets with current spending
+     * Get category budgets with current spending (expenses only)
+     * Income is not included in category budgets - it contributes to overall monthly budget instead
      */
     @Transactional(readOnly = true)
     public Map<String, CategoryBudgetInfo> getCategoryBudgets(String username) {
@@ -190,8 +208,9 @@ public class TransactionService {
         // Get all transactions for calculating spending
         List<Transaction> transactions = transactionRepository.findByUserOrderByTransactionDateDesc(user);
         
-        // Calculate spending per category
+        // Calculate spending per category (expenses only)
         Map<String, BigDecimal> categorySpending = transactions.stream()
+                .filter(t -> t.getType() == TransactionType.EXPENSE)
                 .collect(Collectors.groupingBy(
                         Transaction::getCategory,
                         Collectors.reducing(BigDecimal.ZERO, Transaction::getAmount, BigDecimal::add)
@@ -231,7 +250,63 @@ public class TransactionService {
     }
 
     /**
+     * Create a new category
+     */
+    public void createCategory(String username, String categoryName) {
+        if (categoryName == null || categoryName.trim().isEmpty()) {
+            throw new IllegalArgumentException("Category name cannot be empty");
+        }
+        
+        categoryName = categoryName.trim();
+        User user = getUserByUsername(username);
+        
+        // Check if category already exists
+        if (categoryRepository.existsByUserAndName(user, categoryName)) {
+            throw new IllegalArgumentException("Category '" + categoryName + "' already exists");
+        }
+        
+        // Create new category
+        Category category = new Category(user, categoryName, null);
+        categoryRepository.save(category);
+    }
+
+    /**
+     * Delete a category for a user
+     */
+    @Transactional
+    public void deleteCategory(String username, String categoryName) {
+        if (categoryName == null || categoryName.trim().isEmpty()) {
+            throw new IllegalArgumentException("Category name cannot be empty");
+        }
+        
+        categoryName = categoryName.trim();
+        User user = getUserByUsername(username);
+        
+        // Prevent deletion of Income category
+        if ("Income".equals(categoryName)) {
+            throw new IllegalArgumentException("Cannot delete the Income category");
+        }
+        
+        // Find the category
+        Optional<Category> categoryOpt = categoryRepository.findByUserAndName(user, categoryName);
+        if (categoryOpt.isEmpty()) {
+            throw new IllegalArgumentException("Category '" + categoryName + "' does not exist");
+        }
+        
+        // Check if there are any transactions using this category
+        List<Transaction> transactionsWithCategory = transactionRepository.findTransactionsByUserAndCategory(user, categoryName);
+        if (!transactionsWithCategory.isEmpty()) {
+            throw new IllegalArgumentException("Cannot delete category '" + categoryName + "' because it has " + 
+                transactionsWithCategory.size() + " transaction(s). Delete or move the transactions first.");
+        }
+        
+        // Delete the category
+        categoryRepository.delete(categoryOpt.get());
+    }
+
+    /**
      * Inner class for category budget information
+     * 'spent' represents expenses only for the category (income is tracked separately in overall budget)
      */
     public static class CategoryBudgetInfo {
         private final BigDecimal budget;
@@ -275,6 +350,7 @@ public class TransactionService {
                 transaction.getCategory(),
                 transaction.getTransactionDate(),
                 transaction.getDescription(),
+                transaction.getType(),
                 transaction.getCreatedAt(),
                 transaction.getUpdatedAt()
         );
