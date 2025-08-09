@@ -225,4 +225,38 @@ public class TransactionController {
             return ResponseEntity.badRequest().body(errorResponse);
         }
     }
+
+    /**
+     * PUT /api/transactions/categories/{categoryName}
+     */
+    @PutMapping("/categories/{categoryName}")
+    public ResponseEntity<Map<String, String>> renameCategory(
+            @PathVariable String categoryName,
+            @RequestBody Map<String, String> request,
+            Authentication authentication) {
+        
+        String username = authentication.getName();
+        String newName = request.get("newName");
+        
+        if (newName == null || newName.trim().isEmpty()) {
+            Map<String, String> errorResponse = new HashMap<>();
+            errorResponse.put("error", "New category name is required");
+            return ResponseEntity.badRequest().body(errorResponse);
+        }
+        
+        try {
+            transactionService.renameCategory(username, categoryName, newName);
+            
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Category renamed successfully");
+            response.put("oldName", categoryName);
+            response.put("newName", newName);
+            
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            Map<String, String> errorResponse = new HashMap<>();
+            errorResponse.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(errorResponse);
+        }
+    }
 }

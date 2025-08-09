@@ -218,9 +218,6 @@ class DashboardController {
 
         // Update budget status
         this.updateBudgetStatus(totalExpenses);
-
-        // Total categories
-        document.getElementById('totalCategories').textContent = categories.length;
     }
 
     updateBudgetStatus(totalExpenses) {
@@ -425,10 +422,10 @@ class DashboardController {
 
         // Apply date filter
         if (selectedDate) {
-            const filterDate = new Date(selectedDate);
             filteredTransactions = filteredTransactions.filter(t => {
-                const transactionDate = new Date(t.transactionDate);
-                return transactionDate.toDateString() === filterDate.toDateString();
+                // Get just the date part of the transaction date
+                const transactionDateOnly = t.transactionDate.split('T')[0];
+                return transactionDateOnly === selectedDate;
             });
         }
 
@@ -437,11 +434,65 @@ class DashboardController {
     }
 
     displayFilteredTransactions(transactions) {
-        // Temporarily update the transaction manager's transactions for display
-        const originalTransactions = this.transactionManager.transactions;
-        this.transactionManager.transactions = transactions;
-        this.transactionManager.renderTransactions();
-        this.transactionManager.transactions = originalTransactions;
+        // Get the category container
+        const container = document.getElementById('transactionList');
+        if (!container) return;
+
+        // Check if a category filter is active
+        const categoryFilter = document.getElementById('categoryFilter');
+        const selectedCategory = categoryFilter ? categoryFilter.value : '';
+
+        // Group filtered transactions by category
+        const groupedTransactions = transactions.reduce((groups, transaction) => {
+            const category = transaction.category || 'Uncategorized';
+            if (!groups[category]) {
+                groups[category] = [];
+            }
+            groups[category].push(transaction);
+            return groups;
+        }, {});
+
+        // If a specific category is selected, only show that category
+        if (selectedCategory) {
+            const categoryTransactions = groupedTransactions[selectedCategory] || [];
+            container.innerHTML = this.transactionManager.renderCategorySection(selectedCategory, categoryTransactions);
+            return;
+        }
+
+        // If no category filter, show all categories (for date filtering)
+        // Get all categories (including those without transactions)
+        const allCategories = [...(Array.isArray(this.transactionManager.categories) ? this.transactionManager.categories : [])];
+        
+        // Add any categories that exist only in transactions but not in stored categories
+        Object.keys(groupedTransactions).forEach(category => {
+            if (!allCategories.includes(category)) {
+                allCategories.push(category);
+            }
+        });
+
+        // If no categories exist at all, show empty state
+        if (allCategories.length === 0) {
+            container.innerHTML = `
+                <div class="no-transactions">
+                    <p>No categories yet. Create your first transaction or add a category!</p>
+                </div>
+            `;
+            return;
+        }
+
+        // Render all categories, keeping Income first but preserving timestamp order for others
+        const sortedCategories = allCategories.sort((a, b) => {
+            // Income category always comes first
+            if (a === 'Income') return -1;
+            if (b === 'Income') return 1;
+            // For other categories, maintain the order they appear in the allCategories array
+            // (which preserves the timestamp order from backend)
+            return allCategories.indexOf(b) - allCategories.indexOf(a);
+        });
+        
+        container.innerHTML = sortedCategories
+            .map(category => this.transactionManager.renderCategorySection(category, groupedTransactions[category] || []))
+            .join('');
     }
 
     clearFilters() {
@@ -513,6 +564,14 @@ class DashboardController {
             return;
         }
 
+        // Check for problematic characters that cause URL issues
+        if (categoryName.includes('/') || categoryName.includes('\\')) {
+            this.showMessage('Category names cannot contain forward slashes (/) or backslashes (\\)', 'error');
+            categoryNameInput.focus();
+            categoryNameInput.select();
+            return;
+        }
+
         // Check if category already exists
         if (this.transactionManager.categories.includes(categoryName)) {
             this.showMessage(`Category "${categoryName}" already exists`, 'error');
@@ -536,6 +595,9 @@ class DashboardController {
             
             // Refresh the transaction display to show the new category
             this.transactionManager.renderTransactions();
+            
+            // Update the category count in the stats
+            this.updateStats();
             
             this.hideCategoryInput();
             this.showMessage(`Category "${categoryName}" created successfully!`, 'success');

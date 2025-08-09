@@ -152,6 +152,11 @@ body {
     gap: 1rem;
 }
 
+/* Extended budget card takes up more space */
+.budget-card-extended {
+    grid-column: span 2;
+}
+
 .stat-card {
     background: white;
     padding: 1.5rem;
@@ -162,7 +167,7 @@ body {
 
 .stat-card h3 {
     margin: 0 0 0.5rem 0;
-    color: #6c757d;
+    color: #6494be;
     font-size: 0.9rem;
     font-weight: 500;
     text-transform: uppercase;
@@ -396,6 +401,21 @@ body {
 
 .btn-delete-category:hover {
     background: #c82333;
+}
+
+.btn-edit-category {
+    background: #ffffff;
+    color: white;
+    border: 3px solid #007bff;
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: background-color 0.2s;
+}
+
+.btn-edit-category:hover {
+    background: #f1f2f3;
 }
 
 .no-transactions-in-category {

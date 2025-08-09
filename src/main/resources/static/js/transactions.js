@@ -11,6 +11,13 @@ class TransactionManager {
     }
 
     /**
+     * Escape strings for safe use in JavaScript onclick handlers
+     */
+    escapeForJS(str) {
+        return str.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"');
+    }
+
+    /**
      * Load all transactions for the current user
      */
     async loadTransactions() {
@@ -247,7 +254,7 @@ class TransactionManager {
             // Income category: no budget options, no delete option
             actionButtons = `
                 <span class="category-total" title="Total income">$${transactions.reduce((sum, t) => sum + parseFloat(t.amount), 0).toFixed(2)}</span>
-                <button class="btn-add-transaction" onclick="window.dashboardController.showTransactionModal('${category}')">
+                <button class="btn-add-transaction" onclick="window.dashboardController.showTransactionModal('${this.escapeForJS(category)}')">
                     + Add Income
                 </button>
             `;
@@ -255,13 +262,13 @@ class TransactionManager {
             // Regular expense categories: budget options and delete option
             actionButtons = `
                 <span class="category-total" title="Total expenses in this category">$${totalAmount.toFixed(2)}</span>
-                <button class="btn-set-budget" onclick="window.transactionManager.showBudgetModal('${category}')">
+                <button class="btn-set-budget" onclick="window.transactionManager.showBudgetModal('${this.escapeForJS(category)}')">
                     ${budgetInfo && budgetInfo.budget > 0 ? 'Edit Budget' : 'Set Budget'}
                 </button>
-                <button class="btn-add-transaction" onclick="window.dashboardController.showTransactionModal('${category}')">
+                <button class="btn-add-transaction" onclick="window.dashboardController.showTransactionModal('${this.escapeForJS(category)}')">
                     + Add Transaction
                 </button>
-                ${transactions.length === 0 ? `<button class="btn-delete-category" onclick="window.transactionManager.deleteCategory('${category}')" title="Delete empty category">🗑️</button>` : ''}
+                <button class="btn-delete-category" onclick="window.transactionManager.deleteCategory('${this.escapeForJS(category)}')" title="Delete category">🗑️</button>
             `;
         }
         
@@ -270,6 +277,7 @@ class TransactionManager {
                 <div class="category-header">
                     <div class="category-title-section">
                         <h3>${category}</h3>
+                        ${category !== 'Income' ? `<button class="btn-edit-category" onclick="window.transactionManager.editCategoryName('${this.escapeForJS(category)}')" title="Edit category name">✏️</button>` : ''}
                         ${budgetDisplay}
                     </div>
                     <div class="category-actions">
@@ -489,9 +497,161 @@ class TransactionManager {
             this.renderCategoryOptions();
             
             this.showMessage(`Category "${categoryName}" deleted successfully`);
+            return; // Important: return here to prevent execution of catch block
         } catch (error) {
             console.error('Error deleting category:', error);
-            this.showMessage(`Failed to delete category: ${error.message}`, 'error');
+            
+            // Handle specific error types with user-friendly messages
+            if (error.message.includes('Invalid URI') || 
+                error.message.includes('Bad Request') ||
+                error.message.includes('malformed request syntax')) {
+                
+                this.showMessage(`Cannot delete category "${categoryName}" due to special characters in the name. Please rename the category first to remove any special characters, then try deleting again.`, 'error');
+                return;
+                
+            } else if (error.message.includes('Symbol.iterator') || 
+                       error.message.includes('undefined') ||
+                       error.message.includes("can't access property Symbol.iterator")) {
+                
+                console.warn('Ignoring Symbol.iterator error, checking if deletion succeeded...');
+                
+                // Wait a moment then check if category was actually deleted
+                setTimeout(async () => {
+                    try {
+                        await this.loadCategories();
+                        if (!this.categories.includes(categoryName)) {
+                            // Category was successfully deleted despite the error
+                            this.showMessage(`Category "${categoryName}" deleted successfully`);
+                            
+                            // Refresh display
+                            this.renderTransactions();
+                            this.renderCategoryOptions();
+                            
+                            if (window.dashboardController) {
+                                window.dashboardController.populateCategoryFilter();
+                            }
+                        } else {
+                            this.showMessage(`Failed to delete category: Please try again or contact support if the problem persists.`, 'error');
+                        }
+                    } catch (checkError) {
+                        this.showMessage(`Failed to delete category: Please try again or contact support if the problem persists.`, 'error');
+                    }
+                }, 500);
+                return;
+                
+            } else if (error.status === 400 || error.message.includes('Cannot delete category') || error.message.includes('400')) {
+                // Handle categories with transactions - extract the error message from the response
+                let errorMessage = 'Failed to delete category';
+                
+                try {
+                    // The error message from API client includes "HTTP error! status: 400 - {json_response}"
+                    // Try to extract the JSON part
+                    if (error.message.includes('400 - {')) {
+                        const jsonStart = error.message.indexOf('{');
+                        const jsonStr = error.message.substring(jsonStart);
+                        const errorResponse = JSON.parse(jsonStr);
+                        if (errorResponse.error) {
+                            errorMessage = errorResponse.error;
+                        }
+                    } else if (error.message.includes('Cannot delete category')) {
+                        // Direct error message
+                        errorMessage = error.message;
+                    } else {
+                        // Fallback message
+                        errorMessage = `Cannot delete category "${categoryName}" because it contains transactions. Please delete or move the transactions first.`;
+                    }
+                } catch (parseError) {
+                    console.warn('Could not parse error response:', parseError);
+                    // Fallback if we can't parse the error
+                    errorMessage = `Cannot delete category "${categoryName}" because it contains transactions. Please delete or move the transactions first.`;
+                }
+                
+                this.showMessage(errorMessage, 'error');
+                return;
+                
+            } else {
+                // For other errors, show a generic user-friendly message
+                this.showMessage(`Failed to delete category "${categoryName}". Please try again or contact support if the problem persists.`, 'error');
+            }
+        }
+    }
+
+    /**
+     * Edit a category name
+     */
+    async editCategoryName(currentName) {
+        // Prevent editing of Income category
+        if (currentName === 'Income') {
+            this.showMessage('Income category cannot be renamed', 'error');
+            return;
+        }
+
+        const newName = prompt(`Edit category name:`, currentName);
+        
+        if (newName === null || newName.trim() === currentName) {
+            return; // User cancelled or no change
+        }
+
+        const trimmedNewName = newName.trim();
+        
+        if (!trimmedNewName) {
+            this.showMessage('Category name cannot be empty', 'error');
+            return;
+        }
+
+        // Check for problematic characters
+        if (trimmedNewName.includes('/') || trimmedNewName.includes('\\')) {
+            this.showMessage('Category names cannot contain forward slashes (/) or backslashes (\\)', 'error');
+            return;
+        }
+
+        // Check if new name already exists
+        if (this.categories.includes(trimmedNewName)) {
+            this.showMessage(`Category "${trimmedNewName}" already exists`, 'error');
+            return;
+        }
+
+        try {
+            // Call API to rename category
+            await window.apiClient.put(`/api/transactions/categories/${encodeURIComponent(currentName)}`, {
+                newName: trimmedNewName
+            });
+
+            // Reload categories to get the updated list
+            await this.loadCategories();
+
+            // Refresh display
+            this.renderTransactions();
+            this.renderCategoryOptions();
+
+            // Update dashboard
+            if (window.dashboardController) {
+                window.dashboardController.populateCategoryFilter();
+            }
+
+            this.showMessage(`Category renamed from "${currentName}" to "${trimmedNewName}"`);
+        } catch (error) {
+            console.error('Error renaming category:', error);
+            
+            // Handle structured error responses from the API
+            let errorMessage = `Failed to rename category: ${error.message}`;
+            
+            try {
+                // Try to extract a more specific error message
+                if (error.message.includes('400 - {')) {
+                    const jsonStart = error.message.indexOf('{');
+                    const jsonStr = error.message.substring(jsonStart);
+                    const errorResponse = JSON.parse(jsonStr);
+                    if (errorResponse.error) {
+                        errorMessage = errorResponse.error;
+                    }
+                }
+            } catch (parseError) {
+                // Use the original error message if we can't parse the response
+                console.warn('Could not parse error response:', parseError);
+            }
+            
+            this.showMessage(errorMessage, 'error');
         }
     }
 }

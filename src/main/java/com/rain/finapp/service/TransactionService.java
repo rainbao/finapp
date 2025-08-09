@@ -305,6 +305,64 @@ public class TransactionService {
     }
 
     /**
+     * Rename a category
+     */
+    public void renameCategory(String username, String currentName, String newName) {
+        if (currentName == null || currentName.trim().isEmpty()) {
+            throw new IllegalArgumentException("Current category name cannot be empty");
+        }
+        
+        if (newName == null || newName.trim().isEmpty()) {
+            throw new IllegalArgumentException("New category name cannot be empty");
+        }
+        
+        currentName = currentName.trim();
+        newName = newName.trim();
+        
+        if (currentName.equals(newName)) {
+            throw new IllegalArgumentException("New category name must be different from current name");
+        }
+        
+        User user = getUserByUsername(username);
+        
+        // Prevent renaming of Income category
+        if ("Income".equals(currentName)) {
+            throw new IllegalArgumentException("Cannot rename the Income category");
+        }
+        
+        // Find the current category
+        Optional<Category> currentCategoryOpt = categoryRepository.findByUserAndName(user, currentName);
+        if (currentCategoryOpt.isEmpty()) {
+            throw new IllegalArgumentException("Category '" + currentName + "' does not exist");
+        }
+        
+        // Check if new name already exists
+        Optional<Category> existingCategoryOpt = categoryRepository.findByUserAndName(user, newName);
+        if (existingCategoryOpt.isPresent()) {
+            throw new IllegalArgumentException("Category '" + newName + "' already exists");
+        }
+        
+        // Validate new name doesn't contain problematic characters
+        if (newName.contains("/") || newName.contains("\\")) {
+            throw new IllegalArgumentException("Category names cannot contain forward slashes (/) or backslashes (\\)");
+        }
+        
+        // Update the category name
+        Category category = currentCategoryOpt.get();
+        category.setName(newName);
+        categoryRepository.save(category);
+        
+        // Update all transactions that use this category
+        List<Transaction> transactionsWithCategory = transactionRepository.findTransactionsByUserAndCategory(user, currentName);
+        for (Transaction transaction : transactionsWithCategory) {
+            transaction.setCategory(newName);
+        }
+        if (!transactionsWithCategory.isEmpty()) {
+            transactionRepository.saveAll(transactionsWithCategory);
+        }
+    }
+
+    /**
      * Inner class for category budget information
      * 'spent' represents expenses only for the category (income is tracked separately in overall budget)
      */
