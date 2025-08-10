@@ -363,6 +363,60 @@ public class TransactionService {
     }
 
     /**
+     * Get overall budget summary for the user
+     */
+    public Map<String, Object> getBudgetSummary(String username) {
+        User user = getUserByUsername(username);
+        
+        // Get all transactions for calculations
+        List<Transaction> allTransactions = transactionRepository.findByUserOrderByTransactionDateDesc(user);
+        
+        // Calculate totals
+        BigDecimal totalIncome = BigDecimal.ZERO;
+        BigDecimal totalExpenses = BigDecimal.ZERO;
+        BigDecimal monthlyIncome = BigDecimal.ZERO;
+        BigDecimal monthlyExpenses = BigDecimal.ZERO;
+        
+        // Get current month start
+        OffsetDateTime monthStart = OffsetDateTime.now().withDayOfMonth(1).withHour(0).withMinute(0).withSecond(0).withNano(0);
+        
+        for (Transaction transaction : allTransactions) {
+            if (transaction.getType() == TransactionType.INCOME) {
+                totalIncome = totalIncome.add(transaction.getAmount());
+                if (transaction.getTransactionDate().isAfter(monthStart)) {
+                    monthlyIncome = monthlyIncome.add(transaction.getAmount());
+                }
+            } else {
+                totalExpenses = totalExpenses.add(transaction.getAmount());
+                if (transaction.getTransactionDate().isAfter(monthStart)) {
+                    monthlyExpenses = monthlyExpenses.add(transaction.getAmount());
+                }
+            }
+        }
+        
+        // Get category budgets
+        Map<String, CategoryBudgetInfo> categoryBudgets = getCategoryBudgets(username);
+        BigDecimal totalBudgeted = categoryBudgets.values().stream()
+                .map(CategoryBudgetInfo::getBudget)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        
+        // Create summary
+        Map<String, Object> summary = new HashMap<>();
+        summary.put("totalIncome", totalIncome);
+        summary.put("totalExpenses", totalExpenses);
+        summary.put("totalNet", totalIncome.subtract(totalExpenses));
+        summary.put("monthlyIncome", monthlyIncome);
+        summary.put("monthlyExpenses", monthlyExpenses);
+        summary.put("monthlyNet", monthlyIncome.subtract(monthlyExpenses));
+        summary.put("totalBudgeted", totalBudgeted);
+        summary.put("budgetRemaining", totalBudgeted.subtract(monthlyExpenses));
+        summary.put("transactionCount", (long) allTransactions.size());
+        summary.put("categoryCount", categoryBudgets.size());
+        
+        return summary;
+    }
+
+    /**
      * Inner class for category budget information
      * 'spent' represents expenses only for the category (income is tracked separately in overall budget)
      */

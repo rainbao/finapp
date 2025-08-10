@@ -483,36 +483,56 @@ class TransactionManager {
             return;
         }
 
+        console.log(`Starting deletion of category: ${categoryName}`);
+
         try {
+            console.log('Calling API delete...');
             await window.apiClient.delete(`/api/transactions/categories/${encodeURIComponent(categoryName)}`);
+            console.log('API delete successful');
             
             // Remove from local categories array if it exists and is an array
             if (Array.isArray(this.categories)) {
                 this.categories = this.categories.filter(cat => cat !== categoryName);
             }
             
-            // Refresh the display
-            await this.loadCategories();
-            this.renderTransactions();
-            this.renderCategoryOptions();
+            // Refresh the display - wrap in try-catch to prevent errors from affecting success message
+            try {
+                console.log('Refreshing display...');
+                await this.loadCategories();
+                this.renderTransactions();
+                this.renderCategoryOptions();
+                
+                // Update dashboard category filter if it exists
+                if (window.dashboardController) {
+                    window.dashboardController.populateCategoryFilter();
+                }
+                console.log('Display refresh completed');
+            } catch (refreshError) {
+                console.warn('Error refreshing display after category deletion:', refreshError);
+                // Don't let refresh errors affect the success message
+            }
             
+            console.log('Showing success message');
             this.showMessage(`Category "${categoryName}" deleted successfully`);
-            return; // Important: return here to prevent execution of catch block
+            console.log('Success path completed');
+            
         } catch (error) {
             console.error('Error deleting category:', error);
+            console.log('Entering error handling path');
             
             // Handle specific error types with user-friendly messages
             if (error.message.includes('Invalid URI') || 
                 error.message.includes('Bad Request') ||
                 error.message.includes('malformed request syntax')) {
                 
+                console.log('Handling Invalid URI error');
                 this.showMessage(`Cannot delete category "${categoryName}" due to special characters in the name. Please rename the category first to remove any special characters, then try deleting again.`, 'error');
-                return;
                 
             } else if (error.message.includes('Symbol.iterator') || 
                        error.message.includes('undefined') ||
                        error.message.includes("can't access property Symbol.iterator")) {
                 
+                console.log('Handling Symbol.iterator error');
                 console.warn('Ignoring Symbol.iterator error, checking if deletion succeeded...');
                 
                 // Wait a moment then check if category was actually deleted
@@ -521,6 +541,7 @@ class TransactionManager {
                         await this.loadCategories();
                         if (!this.categories.includes(categoryName)) {
                             // Category was successfully deleted despite the error
+                            console.log('Category was actually deleted despite error');
                             this.showMessage(`Category "${categoryName}" deleted successfully`);
                             
                             // Refresh display
@@ -531,15 +552,17 @@ class TransactionManager {
                                 window.dashboardController.populateCategoryFilter();
                             }
                         } else {
+                            console.log('Category was not deleted');
                             this.showMessage(`Failed to delete category: Please try again or contact support if the problem persists.`, 'error');
                         }
                     } catch (checkError) {
+                        console.log('Error checking if category was deleted');
                         this.showMessage(`Failed to delete category: Please try again or contact support if the problem persists.`, 'error');
                     }
                 }, 500);
-                return;
                 
             } else if (error.status === 400 || error.message.includes('Cannot delete category') || error.message.includes('400')) {
+                console.log('Handling 400 error (category has transactions)');
                 // Handle categories with transactions - extract the error message from the response
                 let errorMessage = 'Failed to delete category';
                 
@@ -567,13 +590,14 @@ class TransactionManager {
                 }
                 
                 this.showMessage(errorMessage, 'error');
-                return;
                 
             } else {
+                console.log('Handling generic error');
                 // For other errors, show a generic user-friendly message
                 this.showMessage(`Failed to delete category "${categoryName}". Please try again or contact support if the problem persists.`, 'error');
             }
         }
+        console.log('Delete category method completed');
     }
 
     /**

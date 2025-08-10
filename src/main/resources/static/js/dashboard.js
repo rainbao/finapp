@@ -45,10 +45,14 @@ class DashboardController {
         // Filters
         const categoryFilter = document.getElementById('categoryFilter');
         const dateFilter = document.getElementById('dateFilter');
+        const startDateFilter = document.getElementById('startDateFilter');
+        const endDateFilter = document.getElementById('endDateFilter');
         const clearFilters = document.getElementById('clearFilters');
 
         if (categoryFilter) categoryFilter.addEventListener('change', this.applyFilters.bind(this));
         if (dateFilter) dateFilter.addEventListener('change', this.applyFilters.bind(this));
+        if (startDateFilter) startDateFilter.addEventListener('change', this.applyFilters.bind(this));
+        if (endDateFilter) endDateFilter.addEventListener('change', this.applyFilters.bind(this));
         if (clearFilters) clearFilters.addEventListener('click', this.clearFilters.bind(this));
 
         // Add category button
@@ -163,7 +167,8 @@ class DashboardController {
             await Promise.all([
                 this.transactionManager.loadTransactions(),
                 this.transactionManager.loadCategories(),
-                this.transactionManager.loadCategoryBudgets()
+                this.transactionManager.loadCategoryBudgets(),
+                this.loadRecentActivity() // Add recent activity loading
             ]);
 
             // Now render transactions with all data loaded
@@ -181,9 +186,71 @@ class DashboardController {
         }
     }
 
-    updateStats() {
+    /**
+     * Load and display recent transactions (last 30 days)
+     */
+    async loadRecentActivity() {
+        try {
+            const recentTransactions = await window.apiClient.get('/api/transactions/recent');
+            this.renderRecentActivity(recentTransactions);
+        } catch (error) {
+            console.warn('Could not load recent activity:', error);
+            // Don't show error to user since this is non-critical
+        }
+    }
+
+    /**
+     * Render recent transactions widget
+     */
+    renderRecentActivity(transactions) {
+        const recentActivityElement = document.getElementById('recentActivity');
+        if (!recentActivityElement) return; // Element doesn't exist in current layout
+        
+        if (!transactions || transactions.length === 0) {
+            recentActivityElement.innerHTML = '<p class="no-recent-activity">No recent transactions</p>';
+            return;
+        }
+
+        // Show only the 5 most recent
+        const recentFive = transactions.slice(0, 5);
+        
+        const recentHTML = recentFive.map(transaction => {
+            const amount = parseFloat(transaction.amount);
+            const amountClass = transaction.type === 'INCOME' ? 'income' : 'expense';
+            const formattedAmount = transaction.type === 'INCOME' ? 
+                `+$${amount.toFixed(2)}` : 
+                `-$${amount.toFixed(2)}`;
+            
+            const date = new Date(transaction.date).toLocaleDateString();
+            
+            return `
+                <div class="recent-transaction-item">
+                    <div class="recent-transaction-info">
+                        <span class="recent-transaction-category">${transaction.category}</span>
+                        <span class="recent-transaction-description">${transaction.description || 'No description'}</span>
+                    </div>
+                    <div class="recent-transaction-details">
+                        <span class="recent-transaction-amount ${amountClass}">${formattedAmount}</span>
+                        <span class="recent-transaction-date">${date}</span>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        recentActivityElement.innerHTML = recentHTML;
+    }
+
+    async updateStats() {
         const transactions = this.transactionManager.transactions;
         const categories = this.transactionManager.categories;
+
+        // Get transaction count from backend
+        let transactionCount = transactions.length; // fallback to local count
+        try {
+            transactionCount = await window.apiClient.get('/api/transactions/count');
+        } catch (error) {
+            console.warn('Could not fetch transaction count from backend:', error);
+        }
 
         // Calculate income and expenses
         const totalIncome = transactions
@@ -214,6 +281,12 @@ class DashboardController {
             netBalanceElement.classList.add('income');
         } else if (netBalance < 0) {
             netBalanceElement.classList.add('expense');
+        }
+
+        // Update transaction count if element exists
+        const transactionCountElement = document.getElementById('transactionCount');
+        if (transactionCountElement) {
+            transactionCountElement.textContent = transactionCount.toString();
         }
 
         // Update budget status
@@ -407,11 +480,15 @@ class DashboardController {
     applyFilters() {
         const categoryFilter = document.getElementById('categoryFilter');
         const dateFilter = document.getElementById('dateFilter');
+        const startDateFilter = document.getElementById('startDateFilter');
+        const endDateFilter = document.getElementById('endDateFilter');
         
-        if (!categoryFilter || !dateFilter) return;
+        if (!categoryFilter) return;
 
         const selectedCategory = categoryFilter.value;
-        const selectedDate = dateFilter.value;
+        const selectedDate = dateFilter ? dateFilter.value : '';
+        const startDate = startDateFilter ? startDateFilter.value : '';
+        const endDate = endDateFilter ? endDateFilter.value : '';
 
         let filteredTransactions = [...this.transactionManager.transactions];
 
@@ -420,12 +497,39 @@ class DashboardController {
             filteredTransactions = filteredTransactions.filter(t => t.category === selectedCategory);
         }
 
-        // Apply date filter
+        // Apply date filters with proper timezone handling
         if (selectedDate) {
+            // Specific date filter (overrides date range)
             filteredTransactions = filteredTransactions.filter(t => {
-                // Get just the date part of the transaction date
-                const transactionDateOnly = t.transactionDate.split('T')[0];
-                return transactionDateOnly === selectedDate;
+                const transactionDate = new Date(t.transactionDate);
+                const filterDate = new Date(selectedDate + 'T00:00:00');
+                
+                // Compare dates in local timezone by getting just the date parts
+                const transactionDateLocal = new Date(transactionDate.getFullYear(), transactionDate.getMonth(), transactionDate.getDate());
+                const filterDateLocal = new Date(filterDate.getFullYear(), filterDate.getMonth(), filterDate.getDate());
+                
+                return transactionDateLocal.getTime() === filterDateLocal.getTime();
+            });
+        } else if (startDate || endDate) {
+            // Date range filter
+            filteredTransactions = filteredTransactions.filter(t => {
+                const transactionDate = new Date(t.transactionDate);
+                const transactionDateLocal = new Date(transactionDate.getFullYear(), transactionDate.getMonth(), transactionDate.getDate());
+                
+                let inRange = true;
+                
+                if (startDate) {
+                    const startDateLocal = new Date(startDate + 'T00:00:00');
+                    const startDateLocalOnly = new Date(startDateLocal.getFullYear(), startDateLocal.getMonth(), startDateLocal.getDate());
+                    inRange = inRange && (transactionDateLocal.getTime() >= startDateLocalOnly.getTime());
+                }
+                if (endDate) {
+                    const endDateLocal = new Date(endDate + 'T00:00:00');
+                    const endDateLocalOnly = new Date(endDateLocal.getFullYear(), endDateLocal.getMonth(), endDateLocal.getDate());
+                    inRange = inRange && (transactionDateLocal.getTime() <= endDateLocalOnly.getTime());
+                }
+                
+                return inRange;
             });
         }
 
@@ -498,9 +602,13 @@ class DashboardController {
     clearFilters() {
         const categoryFilter = document.getElementById('categoryFilter');
         const dateFilter = document.getElementById('dateFilter');
+        const startDateFilter = document.getElementById('startDateFilter');
+        const endDateFilter = document.getElementById('endDateFilter');
         
         if (categoryFilter) categoryFilter.value = '';
         if (dateFilter) dateFilter.value = '';
+        if (startDateFilter) startDateFilter.value = '';
+        if (endDateFilter) endDateFilter.value = '';
         
         // Re-render all transactions
         this.transactionManager.renderTransactions();

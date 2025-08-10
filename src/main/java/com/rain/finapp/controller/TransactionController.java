@@ -259,4 +259,21 @@ public class TransactionController {
             return ResponseEntity.badRequest().body(errorResponse);
         }
     }
+
+    /**
+     * GET /api/budget-summary - Overall budget summary
+     */
+    @GetMapping("/budget-summary")
+    public ResponseEntity<Map<String, Object>> getBudgetSummary(Authentication authentication) {
+        String username = authentication.getName();
+        
+        try {
+            Map<String, Object> summary = transactionService.getBudgetSummary(username);
+            return ResponseEntity.ok(summary);
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Failed to retrieve budget summary");
+            return ResponseEntity.badRequest().body(errorResponse);
+        }
+    }
 }
