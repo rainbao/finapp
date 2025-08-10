@@ -30,11 +30,7 @@ A full-stack web application that helps users manage their income, expenses, and
 
 ---
 
-## 📸 Screenshots
 
-*(Add screenshots here after implementation)*
-
----
 
 ## 📦 Setup Instructions
 
@@ -48,5 +44,5 @@ A full-stack web application that helps users manage their income, expenses, and
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/your-username/personal-finance-tracker.git
+   git clone https://github.com/rainbao/finapp.git
    cd personal-finance-tracker/backend
