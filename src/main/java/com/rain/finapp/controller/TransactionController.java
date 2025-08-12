@@ -16,6 +16,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+
 
 @RestController
 @RequestMapping("/api/transactions")
@@ -143,6 +146,14 @@ public class TransactionController {
         return ResponseEntity.ok(count);
     }
 
+    @GetMapping("/categories/count")
+    public ResponseEntity<Long> getCategoryCount(Authentication authentication) {
+        String username = authentication.getName();
+        long count = transactionService.getCategoryCount(username);
+        return ResponseEntity.ok(count);
+    }
+    
+
     /**
      * Get category budgets with spending information
      * GET /api/transactions/category-budgets
@@ -226,6 +237,19 @@ public class TransactionController {
         }
     }
 
+    
+    /**
+     *  DELETE /api/categories/{categoryName}/transactions - delete all transactions in a category
+     */
+    @DeleteMapping("/categories/{categoryName}/transactions")
+    public ResponseEntity<?> deleteAllTransactionsInCategory(
+            @PathVariable String categoryName,
+            Authentication authentication) {
+        String username = authentication.getName();
+        transactionService.deleteAllTransactionsInCategory(username, categoryName);
+        return ResponseEntity.ok().build();
+    }
+
     /**
      * PUT /api/transactions/categories/{categoryName}
      */
@@ -276,4 +300,6 @@ public class TransactionController {
             return ResponseEntity.badRequest().body(errorResponse);
         }
     }
+
+
 }

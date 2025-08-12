@@ -9,6 +9,8 @@ import com.rain.finapp.model.User;
 import com.rain.finapp.repository.CategoryRepository;
 import com.rain.finapp.repository.TransactionRepository;
 import com.rain.finapp.repository.UserRepository;
+
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -137,8 +139,15 @@ public class TransactionService {
     }
 
     /**
-     * Get a single transaction by ID (only if user owns it)
+     * Delete all transactions in a category
      */
+    public void deleteAllTransactionsInCategory(String username, String categoryName) {
+        User user = getUserByUsername(username);
+        List<Transaction> transactions = transactionRepository.findTransactionsByUserAndCategory(user, categoryName);
+        transactionRepository.deleteAll(transactions);
+    }
+
+    // Get a single transaction by ID (only if user owns it)
     @Transactional(readOnly = true)
     public TransactionResponse getTransactionById(String username, UUID transactionId) {
         User user = getUserByUsername(username);
@@ -270,6 +279,16 @@ public class TransactionService {
         categoryRepository.save(category);
     }
 
+
+    /**
+     * Get category count for a user
+     */
+    @Transactional(readOnly = true)
+    public long getCategoryCount(String username) {
+        User user = getUserByUsername(username);
+        return categoryRepository.findByUserOrderByNameAsc(user).size();
+    }
+
     /**
      * Delete a category for a user
      */
@@ -304,6 +323,7 @@ public class TransactionService {
         categoryRepository.delete(categoryOpt.get());
     }
 
+    
     /**
      * Rename a category
      */
@@ -347,7 +367,7 @@ public class TransactionService {
             throw new IllegalArgumentException("Category names cannot contain forward slashes (/) or backslashes (\\)");
         }
         
-        // Update the category name
+        // Update the category name 
         Category category = currentCategoryOpt.get();
         category.setName(newName);
         categoryRepository.save(category);

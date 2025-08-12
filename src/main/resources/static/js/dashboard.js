@@ -240,9 +240,29 @@ class DashboardController {
         recentActivityElement.innerHTML = recentHTML;
     }
 
-    async updateStats() {
+    /**
+     * Update dashboard stats. If skipReload is true, uses current transactionManager data.
+     * @param {boolean} skipReload
+     */
+    async updateStats(skipReload = false) {
+        if (!skipReload) {
+            // Reload transactions to ensure we have the latest data
+            try {
+                await this.transactionManager.loadTransactions();
+            } catch (error) {
+                console.warn('Could not reload transactions for stats update:', error);
+            }
+        }
         const transactions = this.transactionManager.transactions;
         const categories = this.transactionManager.categories;
+
+        //Get category count from backend
+        let categoryCount = categories.length; // fallback to local count
+        try {
+            categoryCount = await window.apiClient.get('/api/transactions/categories/count');
+        } catch (error) {
+            console.warn('Could not fetch category count from backend:', error);
+        }
 
         // Get transaction count from backend
         let transactionCount = transactions.length; // fallback to local count
@@ -281,6 +301,12 @@ class DashboardController {
             netBalanceElement.classList.add('income');
         } else if (netBalance < 0) {
             netBalanceElement.classList.add('expense');
+        }
+
+        //Update category count if element exists
+        const categoryCountElement = document.getElementById('categoryCount');
+        if (categoryCountElement) {
+            categoryCountElement.textContent = categoryCount.toString();
         }
 
         // Update transaction count if element exists

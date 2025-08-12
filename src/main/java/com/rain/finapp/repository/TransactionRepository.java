@@ -43,4 +43,5 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
 
     // Find transactions by user and category
     List<Transaction> findTransactionsByUserAndCategory(User user, String category);
+
 }

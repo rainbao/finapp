@@ -524,6 +524,22 @@ body {
     background: #c82333;
 }
 
+.btn-clear-category {
+    background: #fd7e14;
+    color: white;
+    border: none;
+    padding: 0.5rem 0.75rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    margin-left: 0.5rem;
+    transition: background-color 0.2s;
+}
+
+.btn-clear-category:hover {
+    background: #e8610e;
+}
+
 .btn-edit-category {
     background: #ffffff;
     color: white;

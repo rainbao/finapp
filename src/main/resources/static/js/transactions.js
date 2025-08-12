@@ -39,11 +39,21 @@ class TransactionManager {
     async loadCategories() {
         try {
             const response = await window.apiClient.get('/api/transactions/categories');
-            this.categories = response || [];
+            console.log('Categories API response:', response);
+            
+            // Ensure response is an array
+            if (Array.isArray(response)) {
+                this.categories = response;
+            } else {
+                console.warn('Categories API returned non-array:', response);
+                this.categories = [];
+            }
+            
             this.renderCategoryOptions();
-            return response;
+            return this.categories;
         } catch (error) {
             console.error('Error loading categories:', error);
+            this.categories = []; // Ensure categories is always an array
             return [];
         }
     }
@@ -260,6 +270,7 @@ class TransactionManager {
             `;
         } else {
             // Regular expense categories: budget options and delete option
+            const hasTransactions = transactions.length > 0;
             actionButtons = `
                 <span class="category-total" title="Total expenses in this category">$${totalAmount.toFixed(2)}</span>
                 <button class="btn-set-budget" onclick="window.transactionManager.showBudgetModal('${this.escapeForJS(category)}')">
@@ -268,6 +279,7 @@ class TransactionManager {
                 <button class="btn-add-transaction" onclick="window.dashboardController.showTransactionModal('${this.escapeForJS(category)}')">
                     + Add Transaction
                 </button>
+                ${hasTransactions ? `<button class="btn-clear-category" onclick="window.transactionManager.clearCategoryTransactions('${this.escapeForJS(category)}')" title="Clear all transactions in this category">Clear All</button>` : ''}
                 <button class="btn-delete-category" onclick="window.transactionManager.deleteCategory('${this.escapeForJS(category)}')" title="Delete category">🗑️</button>
             `;
         }
@@ -450,34 +462,37 @@ class TransactionManager {
         }
     }
 
-    /**
-     * Render category options in select dropdown
-     */
+    // Render category options in select dropdown
     renderCategoryOptions() {
         const select = document.getElementById('transactionCategory');
         if (!select) return;
 
         // Ensure categories is an array
         if (!Array.isArray(this.categories)) {
+            console.warn('Categories is not an array in renderCategoryOptions:', this.categories);
             return;
         }
 
-        // Keep existing options, just add new categories
-        const existingOptions = Array.from(select.options).map(option => option.value);
-        
-        this.categories.forEach(category => {
-            if (!existingOptions.includes(category)) {
-                const option = document.createElement('option');
-                option.value = category;
-                option.textContent = category;
-                select.appendChild(option);
-            }
-        });
+        try {
+            // Keep existing options, just add new categories
+            const existingOptions = Array.from(select.options || []).map(option => option.value);
+            
+            this.categories.forEach(category => {
+                if (!existingOptions.includes(category)) {
+                    const option = document.createElement('option');
+                    option.value = category;
+                    option.textContent = category;
+                    select.appendChild(option);
+                }
+            });
+        } catch (error) {
+            console.error('Error in renderCategoryOptions:', error);
+            console.log('Categories:', this.categories);
+            console.log('Select element:', select);
+        }
     }
 
-    /**
-     * Delete a category
-     */
+    // Delete a category
     async deleteCategory(categoryName) {
         if (!confirm(`Are you sure you want to delete the category "${categoryName}"? This action cannot be undone.`)) {
             return;
@@ -496,11 +511,14 @@ class TransactionManager {
             }
             
             // Refresh the display - wrap in try-catch to prevent errors from affecting success message
+            
             try {
                 console.log('Refreshing display...');
                 await this.loadCategories();
                 this.renderTransactions();
                 this.renderCategoryOptions();
+
+                
                 
                 // Update dashboard category filter if it exists
                 if (window.dashboardController) {
@@ -677,6 +695,142 @@ class TransactionManager {
             
             this.showMessage(errorMessage, 'error');
         }
+    }
+
+    /**
+     * Clear all transactions from a specific category
+     */
+    async clearCategoryTransactions(categoryName) {
+        // Prevent clearing Income category transactions
+        if (categoryName === 'Income') {
+            this.showMessage('Cannot clear Income category transactions', 'error');
+            return;
+        }
+
+        // Get transaction count for this category first
+        const categoryTransactions = this.transactions.filter(t => t.category === categoryName);
+        const transactionCount = categoryTransactions.length;
+
+        if (transactionCount === 0) {
+            this.showMessage(`No transactions found in category "${categoryName}"`, 'error');
+            return;
+        }
+
+        // Double confirmation for destructive action
+        if (!confirm(`Are you sure you want to delete ALL ${transactionCount} transaction(s) in "${categoryName}"?\n\nThis action cannot be undone!`)) {
+            return;
+        }
+
+        console.log(`Starting clear all transactions from category: ${categoryName}`);
+
+        try {
+            console.log('Calling API to clear transactions...');
+            
+            // Call the backend endpoint to delete all transactions in the category
+            await window.apiClient.delete(`/api/transactions/categories/${encodeURIComponent(categoryName)}/transactions`);
+            
+            console.log('Backend deletion successful');
+            
+            // Reload transactions from server to ensure we have the latest data
+            await this.loadTransactions();
+            // Refresh the display - wrap in try-catch to prevent errors from affecting success message
+            try {
+                console.log('Refreshing display after clearing transactions...');
+                this.renderTransactions();
+                
+                // Reload categories to ensure dropdown is up to date
+                try {
+                    await this.loadCategories();
+                } catch (categoryError) {
+                    console.warn('Error reloading categories after clearing transactions:', categoryError);
+                }
+                
+                // Update dashboard stats and category filter
+                if (window.dashboardController) {
+                    await window.dashboardController.updateStats(true); // skipReload = true
+                    window.dashboardController.populateCategoryFilter();
+                }
+                console.log('Display refresh completed');
+            } catch (refreshError) {
+                console.warn('Error refreshing display after clearing transactions:', refreshError);
+                // Don't let refresh errors affect the success message
+            }
+            console.log('Showing success message');
+            this.showMessage(`All ${transactionCount} transaction(s) from "${categoryName}" deleted successfully`);
+            console.log('Clear all transactions completed successfully');
+            
+        } catch (error) {
+            console.error('Error clearing category transactions:', error);
+            console.log('Entering error handling path');
+            
+            // Handle specific error types with user-friendly messages
+            if (error.message.includes('Symbol.iterator') || 
+                error.message.includes('undefined') ||
+                error.message.includes("can't access property Symbol.iterator")) {
+                
+                console.log('Handling Symbol.iterator error');
+                console.warn('Ignoring Symbol.iterator error, checking if clearing succeeded...');
+                
+                // Wait a moment then check if transactions were actually cleared
+                setTimeout(async () => {
+                    try {
+                        // Reload transactions to check if they were cleared
+                        await this.loadTransactions();
+                        const remainingTransactions = this.transactions.filter(t => t.category === categoryName);
+                        
+                        if (remainingTransactions.length === 0) {
+                            // Transactions were successfully cleared despite the error
+                            console.log('Transactions were actually cleared despite error');
+                            this.showMessage(`All ${transactionCount} transaction(s) from "${categoryName}" deleted successfully`);
+                            
+                            // Refresh display
+                            this.renderTransactions();
+                            
+                            // Reload categories before rendering options
+                            try {
+                                await this.loadCategories();
+                            } catch (categoryError) {
+                                console.warn('Error reloading categories in recovery path:', categoryError);
+                            }
+                            
+                            if (window.dashboardController) {
+                                await window.dashboardController.updateStats();
+                                window.dashboardController.populateCategoryFilter();
+                            }
+                        } else {
+                            console.log('Transactions were not cleared');
+                            this.showMessage(`Failed to clear transactions from "${categoryName}": Please try again or contact support if the problem persists.`, 'error');
+                        }
+                    } catch (checkError) {
+                        console.log('Error checking if transactions were cleared');
+                        this.showMessage(`Failed to clear transactions from "${categoryName}": Please try again or contact support if the problem persists.`, 'error');
+                    }
+                }, 500);
+                
+            } else {
+                // Handle structured error responses from the API
+                let errorMessage = `Failed to clear transactions from "${categoryName}": ${error.message}`;
+                
+                try {
+                    // Try to extract a more specific error message
+                    if (error.message.includes('400 - {')) {
+                        const jsonStart = error.message.indexOf('{');
+                        const jsonStr = error.message.substring(jsonStart);
+                        const errorResponse = JSON.parse(jsonStr);
+                        if (errorResponse.error) {
+                            errorMessage = errorResponse.error;
+                        }
+                    } else if (error.message.includes('404')) {
+                        errorMessage = `Category "${categoryName}" not found or has no transactions`;
+                    }
+                } catch (parseError) {
+                    console.warn('Could not parse error response:', parseError);
+                }
+                
+                this.showMessage(errorMessage, 'error');
+            }
+        }
+        console.log('Clear category transactions method completed');
     }
 }
 
