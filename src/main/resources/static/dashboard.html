@@ -3,13 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard</title>
+    <title>Dashboard - Brooks</title>
     <link rel="stylesheet" href="css/style.css">
+    <link rel="icon" type="image/svg+xml" href="images/brooks.svg" />
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 </head>
 <body>
     <header class="main-header">
         <div class="header-content">
-            <h1>Dashboard</h1>
+            <div class="logo">
+                <i data-lucide="waves" class="logo-icon"></i>
+                <span class="logo-text">Brooks</span>
+            </div>
             <div class="header-actions">
                 <button id="addTransactionBtn" class="btn-primary">+ Add Transaction</button>
                 <button id="logoutBtn" class="btn-secondary">Logout</button>
@@ -62,19 +67,69 @@
             <div class="section-header">
                 <h2>Your Transactions</h2>
                 <div class="transaction-filters">
-                    <select id="categoryFilter">
-                        <option value="">All Categories</option>
-                    </select>
-                    <div class="date-filter-group">
-                        <label class="filter-label">Date Range:</label>
-                        <input type="date" id="startDateFilter" placeholder="From date" title="Start Date">
-                        <span class="date-separator">to</span>
-                        <input type="date" id="endDateFilter" placeholder="To date" title="End Date">
+                    <div class="filter-method-group">
+                        <label class="filter-label">Filter By:</label>
+                        <select id="filterMethod">
+                            <option value="category">Category</option>
+                            <option value="dateRange">Date Range</option>
+                            <option value="specificDate">Specific Date</option>
+                            <option value="amount">Amount Range</option>
+                            <option value="type">Transaction Type</option>
+                            <option value="description">Description</option>
+                        </select>
                     </div>
-                    <div class="date-filter-group">
-                        <label class="filter-label">Specific Date:</label>
-                        <input type="date" id="dateFilter" placeholder="Specific date" title="Filter by specific date">
+                    
+                    <!-- Category Filter -->
+                    <div id="categoryFilterGroup" class="filter-group active">
+                        <select id="categoryFilter">
+                            <option value="">All Categories</option>
+                        </select>
                     </div>
+                    
+                    <!-- Date Range Filter -->
+                    <div id="dateRangeFilterGroup" class="filter-group">
+                        <div class="date-filter-group">
+                            <label class="filter-label">From:</label>
+                            <input type="date" id="startDateFilter" placeholder="From date" title="Start Date">
+                        </div>
+                        <div class="date-filter-group">
+                            <label class="filter-label">To:</label>
+                            <input type="date" id="endDateFilter" placeholder="To date" title="End Date">
+                        </div>
+                    </div>
+                    
+                    <!-- Specific Date Filter -->
+                    <div id="specificDateFilterGroup" class="filter-group">
+                        <div class="date-filter-group">
+                            <label class="filter-label">Date:</label>
+                            <input type="date" id="dateFilter" placeholder="Specific date" title="Filter by specific date">
+                        </div>
+                    </div>
+                    
+                    <!-- Amount Range Filter -->
+                    <div id="amountFilterGroup" class="filter-group">
+                        <div class="amount-filter-group">
+                            <label class="filter-label">Amount:</label>
+                            <input type="number" id="minAmountFilter" placeholder="Min" step="0.01" min="0" title="Minimum amount">
+                            <span class="filter-separator">to</span>
+                            <input type="number" id="maxAmountFilter" placeholder="Max" step="0.01" min="0" title="Maximum amount">
+                        </div>
+                    </div>
+                    
+                    <!-- Transaction Type Filter -->
+                    <div id="typeFilterGroup" class="filter-group">
+                        <select id="typeFilter">
+                            <option value="">All Types</option>
+                            <option value="INCOME">Income</option>
+                            <option value="EXPENSE">Expense</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Description Filter -->
+                    <div id="descriptionFilterGroup" class="filter-group">
+                        <input type="text" id="descriptionFilter" placeholder="Search description..." title="Search in transaction descriptions">
+                    </div>
+                    
                     <button id="clearFilters" class="btn-outline">Clear Filters</button>
                 </div>
             </div>
@@ -153,5 +208,14 @@
     <script src="js/api.js"></script>
     <script src="js/transactions.js"></script>
     <script src="js/dashboard.js"></script>
+    
+    <!-- Initialize Lucide icons -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.lucide) {
+                window.lucide.createIcons();
+            }
+        });
+    </script>
 </body>
 </html>

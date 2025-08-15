@@ -146,6 +146,10 @@ public class TransactionController {
         return ResponseEntity.ok(count);
     }
 
+    /**
+     * Get category count for user
+     * GET /api/transactions/categories/count
+     */
     @GetMapping("/categories/count")
     public ResponseEntity<Long> getCategoryCount(Authentication authentication) {
         String username = authentication.getName();

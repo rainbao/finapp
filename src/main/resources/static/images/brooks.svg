@@ -1,0 +1,17 @@
+<svg
+        class="water-graphic"
+        viewBox="0 0 120 120"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <ellipse cx="60" cy="60" rx="55" ry="55" fill="#b2dfdb" />
+        <path
+          d="M10 80 Q 60 100 110 80 Q 90 60 60 70 Q 30 80 10 80 Z"
+          fill="#43e97b"
+        />
+        <path
+          d="M20 70 Q 60 90 100 70 Q 80 50 60 60 Q 40 70 20 70 Z"
+          fill="#2196f3"
+          fill-opacity="0.7"
+        />
+</svg>

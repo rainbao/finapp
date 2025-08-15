@@ -44,3 +44,15 @@ start-app-dev.bat
 ### Secure Startup Scripts ###
 start-app-secure.bat
 start-app.ps1
+
+
+### Layout Stuff ###
+layout.tsx
+page.tsx
+
+
+### Github ###
+/.github
+/.github/instructions
+/.github/prompts
+

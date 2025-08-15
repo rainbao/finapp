@@ -3,12 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - BudgIt</title>
+    <title>Login - Brooks</title>
     <link rel="stylesheet" href="css/style.css">
+    <link rel="icon" type="image/svg+xml" href="images/brooks.svg" />
 </head>
 <body class="auth-page">
     <div class="auth-container">
-        <h2>Login</h2>
+        <div class="auth-header">
+            <a href="/" class="back-to-home">← Back to Brooks</a>
+            <h2>Welcome Back</h2>
+            <p>Sign in to your Brooks account</p>
+        </div>
      
         <form id="loginForm" class="auth-form">
             <div class="form-group">
@@ -20,10 +25,10 @@
                 <input type="password" id="password" name="password" required>
             </div>
             
-            <button type="submit">Login</button>
+            <button type="submit">Sign In</button>
         </form>
 
-        <p class="user-prompt">Don't have an account? <a href="/register.html">Register here</a></p>
+        <p class="user-prompt">Don't have an account? <a href="/register">Sign up here</a></p>
     </div>
 
     <!-- Load JavaScript modules -->

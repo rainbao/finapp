@@ -28,10 +28,11 @@ public class SecurityConfig {
                 .requestMatchers(
                     "/api/login", "/api/register", "/api/budget-summary",
                     "/test-users", "/test-user-count", "/test-users/user-name", "/test-users/{userId}",
-                    "/register.html", "/login.html", "/dashboard.html", "/debug.html",
-                    "/", "/index.html", 
-                    "/css/**", "/js/**", "/images/**", "/static/**"
+                    "/register.html", "/login.html", "/debug.html",
+                    "/", "/index.html", "/home", "/landing", "/login", "/register", 
+                    "/css/**", "/js/**", "/images/**", "/static/**", "/favicon.ico"
                 ).permitAll()
+                .requestMatchers("/dashboard.html", "/dashboard").authenticated()
                 .requestMatchers("/api/me", "/api/transactions/**").authenticated()
                 .anyRequest().authenticated()
             )

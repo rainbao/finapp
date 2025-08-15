@@ -4,7 +4,7 @@
 class DashboardController {
     constructor() {
         this.transactionManager = null;
-        this.monthlyBudget = parseFloat(localStorage.getItem('monthlyBudget')) || 0;
+        this.monthlyBudget = 0;
         this.initialize();
         this.initializeEventListeners();
     }
@@ -43,16 +43,29 @@ class DashboardController {
         }
 
         // Filters
+        const filterMethod = document.getElementById('filterMethod');
         const categoryFilter = document.getElementById('categoryFilter');
         const dateFilter = document.getElementById('dateFilter');
         const startDateFilter = document.getElementById('startDateFilter');
         const endDateFilter = document.getElementById('endDateFilter');
+        const minAmountFilter = document.getElementById('minAmountFilter');
+        const maxAmountFilter = document.getElementById('maxAmountFilter');
+        const typeFilter = document.getElementById('typeFilter');
+        const descriptionFilter = document.getElementById('descriptionFilter');
         const clearFilters = document.getElementById('clearFilters');
 
+        // Filter method change handler
+        if (filterMethod) filterMethod.addEventListener('change', this.handleFilterMethodChange.bind(this));
+        
+        // Individual filter event listeners
         if (categoryFilter) categoryFilter.addEventListener('change', this.applyFilters.bind(this));
         if (dateFilter) dateFilter.addEventListener('change', this.applyFilters.bind(this));
         if (startDateFilter) startDateFilter.addEventListener('change', this.applyFilters.bind(this));
         if (endDateFilter) endDateFilter.addEventListener('change', this.applyFilters.bind(this));
+        if (minAmountFilter) minAmountFilter.addEventListener('input', this.applyFilters.bind(this));
+        if (maxAmountFilter) maxAmountFilter.addEventListener('input', this.applyFilters.bind(this));
+        if (typeFilter) typeFilter.addEventListener('change', this.applyFilters.bind(this));
+        if (descriptionFilter) descriptionFilter.addEventListener('input', this.applyFilters.bind(this));
         if (clearFilters) clearFilters.addEventListener('click', this.clearFilters.bind(this));
 
         // Add category button
@@ -163,11 +176,12 @@ class DashboardController {
 
     async loadTransactionData() {
         try {
-            // Load transactions, categories, and budgets
+            // Load transactions, categories, budgets, and monthly budget
             await Promise.all([
                 this.transactionManager.loadTransactions(),
                 this.transactionManager.loadCategories(),
                 this.transactionManager.loadCategoryBudgets(),
+                this.loadMonthlyBudget(),
                 this.loadRecentActivity() // Add recent activity loading
             ]);
 
@@ -241,11 +255,30 @@ class DashboardController {
     }
 
     /**
+     * Load monthly budget from the API
+     */
+    async loadMonthlyBudget() {
+        try {
+            const response = await window.apiClient.getMonthlyBudget();
+            if (response && response.monthlyBudget !== undefined) {
+                this.monthlyBudget = parseFloat(response.monthlyBudget) || 0;
+            } else {
+                this.monthlyBudget = 0;
+            }
+        } catch (error) {
+            console.warn('Error loading monthly budget:', error.message);
+            this.monthlyBudget = 0;
+        }
+    }
+
+    /**
      * Update dashboard stats. If skipReload is true, uses current transactionManager data.
      * @param {boolean} skipReload
      */
     async updateStats(skipReload = false) {
+        
         if (!skipReload) {
+            
             // Reload transactions to ensure we have the latest data
             try {
                 await this.transactionManager.loadTransactions();
@@ -351,19 +384,24 @@ class DashboardController {
         }
     }
 
-    showBudgetModal() {
+    async showBudgetModal() {
         const currentBudget = this.monthlyBudget > 0 ? this.monthlyBudget.toFixed(2) : '';
         const budgetInput = prompt(`Set your monthly budget:\n(Current: $${currentBudget || '0.00'})`, currentBudget);
         
         if (budgetInput !== null && budgetInput.trim() !== '') {
             const budgetAmount = parseFloat(budgetInput);
-            if (!isNaN(budgetAmount) && budgetAmount > 0) {
-                this.monthlyBudget = budgetAmount;
-                localStorage.setItem('monthlyBudget', budgetAmount.toString());
-                this.updateStats(); // Refresh the display
-                this.showMessage(`Monthly budget set to $${budgetAmount.toFixed(2)}!`, 'success');
+            if (!isNaN(budgetAmount) && budgetAmount >= 0) {
+                try {
+                    await window.apiClient.updateMonthlyBudget(budgetAmount);
+                    this.monthlyBudget = budgetAmount;
+                    this.updateStats(); // Refresh the display
+                    this.showMessage(`Monthly budget set to $${budgetAmount.toFixed(2)}!`, 'success');
+                } catch (error) {
+                    console.error('Error updating monthly budget:', error);
+                    this.showMessage('Failed to update monthly budget. Please try again.', 'error');
+                }
             } else {
-                this.showMessage('Please enter a valid budget amount greater than 0', 'error');
+                this.showMessage('Please enter a valid budget amount (0 or greater)', 'error');
             }
         }
     }
@@ -503,24 +541,82 @@ class DashboardController {
         }
     }
 
+    handleFilterMethodChange() {
+        const filterMethod = document.getElementById('filterMethod');
+        if (!filterMethod) return;
+
+        const selectedMethod = filterMethod.value;
+        
+        // Hide all filter groups
+        const filterGroups = document.querySelectorAll('.filter-group');
+        filterGroups.forEach(group => group.classList.remove('active'));
+        
+        // Show the selected filter group
+        const targetGroup = document.getElementById(`${selectedMethod}FilterGroup`);
+        if (targetGroup) {
+            targetGroup.classList.add('active');
+        }
+        
+        // Don't clear filters when method changes - let users keep their current filter values
+        // Apply current filters to show filtered results immediately
+        this.applyFilters();
+    }
+
     applyFilters() {
         const categoryFilter = document.getElementById('categoryFilter');
         const dateFilter = document.getElementById('dateFilter');
         const startDateFilter = document.getElementById('startDateFilter');
         const endDateFilter = document.getElementById('endDateFilter');
+        const minAmountFilter = document.getElementById('minAmountFilter');
+        const maxAmountFilter = document.getElementById('maxAmountFilter');
+        const typeFilter = document.getElementById('typeFilter');
+        const descriptionFilter = document.getElementById('descriptionFilter');
         
-        if (!categoryFilter) return;
-
-        const selectedCategory = categoryFilter.value;
+        // Don't exit early if categoryFilter is missing - other filters should still work
+        
+        const selectedCategory = categoryFilter ? categoryFilter.value : '';
         const selectedDate = dateFilter ? dateFilter.value : '';
         const startDate = startDateFilter ? startDateFilter.value : '';
         const endDate = endDateFilter ? endDateFilter.value : '';
+        const minAmount = minAmountFilter ? parseFloat(minAmountFilter.value) : null;
+        const maxAmount = maxAmountFilter ? parseFloat(maxAmountFilter.value) : null;
+        const selectedType = typeFilter ? typeFilter.value : '';
+        const searchDescription = descriptionFilter ? descriptionFilter.value.toLowerCase() : '';
 
         let filteredTransactions = [...this.transactionManager.transactions];
 
         // Apply category filter
         if (selectedCategory) {
             filteredTransactions = filteredTransactions.filter(t => t.category === selectedCategory);
+        }
+
+        // Apply transaction type filter
+        if (selectedType) {
+            filteredTransactions = filteredTransactions.filter(t => t.type === selectedType);
+        }
+
+        // Apply description filter
+        if (searchDescription) {
+            filteredTransactions = filteredTransactions.filter(t => 
+                (t.description || '').toLowerCase().includes(searchDescription)
+            );
+        }
+
+        // Apply amount range filter
+        if (!isNaN(minAmount) || !isNaN(maxAmount)) {
+            filteredTransactions = filteredTransactions.filter(t => {
+                const amount = parseFloat(t.amount);
+                let inRange = true;
+                
+                if (!isNaN(minAmount) && minAmount !== null) {
+                    inRange = inRange && (amount >= minAmount);
+                }
+                if (!isNaN(maxAmount) && maxAmount !== null) {
+                    inRange = inRange && (amount <= maxAmount);
+                }
+                
+                return inRange;
+            });
         }
 
         // Apply date filters with proper timezone handling
@@ -626,15 +722,37 @@ class DashboardController {
     }
 
     clearFilters() {
+        const filterMethod = document.getElementById('filterMethod');
         const categoryFilter = document.getElementById('categoryFilter');
         const dateFilter = document.getElementById('dateFilter');
         const startDateFilter = document.getElementById('startDateFilter');
         const endDateFilter = document.getElementById('endDateFilter');
+        const minAmountFilter = document.getElementById('minAmountFilter');
+        const maxAmountFilter = document.getElementById('maxAmountFilter');
+        const typeFilter = document.getElementById('typeFilter');
+        const descriptionFilter = document.getElementById('descriptionFilter');
         
+        // Reset filter method to category
+        if (filterMethod) filterMethod.value = 'category';
+        
+        // Clear all filter values
         if (categoryFilter) categoryFilter.value = '';
         if (dateFilter) dateFilter.value = '';
         if (startDateFilter) startDateFilter.value = '';
         if (endDateFilter) endDateFilter.value = '';
+        if (minAmountFilter) minAmountFilter.value = '';
+        if (maxAmountFilter) maxAmountFilter.value = '';
+        if (typeFilter) typeFilter.value = '';
+        if (descriptionFilter) descriptionFilter.value = '';
+        
+        // Reset filter group visibility
+        const filterGroups = document.querySelectorAll('.filter-group');
+        filterGroups.forEach(group => group.classList.remove('active'));
+        
+        const categoryFilterGroup = document.getElementById('categoryFilterGroup');
+        if (categoryFilterGroup) {
+            categoryFilterGroup.classList.add('active');
+        }
         
         // Re-render all transactions
         this.transactionManager.renderTransactions();

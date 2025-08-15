@@ -3,12 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Register</title>
+    <title>Sign Up - Brooks</title>
     <link rel="stylesheet" href="css/style.css">
+    <link rel="icon" type="image/svg+xml" href="images/brooks.svg" />
 </head>
 <body class="auth-page">
     <div class="auth-container">
-        <h2>Register</h2>
+        <div class="auth-header">
+            <a href="/" class="back-to-home">← Back to Brooks</a>
+            <h2>Create Account</h2>
+            <p>Join Brooks and start managing your finances</p>
+        </div>
+        
         <form id="registerForm" class="auth-form">
             <div class="form-group">
                 <label for="username">Username:</label>
@@ -22,10 +28,10 @@
                 <label for="password">Password:</label>
                 <input type="password" id="password" name="password" required>
             </div>
-            <button type="submit">Register</button>
+            <button type="submit">Create Account</button>
         </form>
 
-        <p class="user-prompt">Already have an account? <a href="/login.html">Login here</a></p>
+        <p class="user-prompt">Already have an account? <a href="/login">Sign in here</a></p>
     </div>
 
     <!-- Load JavaScript modules -->

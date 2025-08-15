@@ -46,7 +46,7 @@ class AuthManager {
         // Clear sessionStorage
         sessionStorage.removeItem(this.USERNAME_KEY);
         
-        window.location.href = "/login.html";
+        window.location.href = "/";
     }
 
     /**

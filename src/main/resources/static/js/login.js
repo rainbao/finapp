@@ -37,7 +37,7 @@ class LoginController {
             if (response && response.message) {
                 // Store username (JWT is already in HTTP-only cookie)
                 window.authManager.setAuth(username);
-                window.location.href = "/dashboard.html";
+                window.location.href = "/dashboard";
                 
             } else {
                 throw new Error('Login failed - invalid response');

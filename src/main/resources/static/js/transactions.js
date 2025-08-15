@@ -511,17 +511,24 @@ class TransactionManager {
             }
             
             // Refresh the display - wrap in try-catch to prevent errors from affecting success message
-            
-            try {
-                console.log('Refreshing display...');
-                await this.loadCategories();
-                this.renderTransactions();
-                this.renderCategoryOptions();
 
+            // Reload categories to ensure we have the latest data
+            await this.loadCategories();
+            //Refresh display - wrap in try-catch to prevent errors from affecting success message
+            try {
+                console.log('Refreshing display after clearing transactions...');
+                this.renderTransactions();
                 
+                // Reload categories to ensure dropdown is up to date
+                try {
+                    await this.loadCategories();
+                } catch (categoryError) {
+                    console.warn('Error reloading categories after clearing transactions:', categoryError);
+                }
                 
-                // Update dashboard category filter if it exists
+                // Update dashboard stats and category filter
                 if (window.dashboardController) {
+                    await window.dashboardController.updateStats(true); // skipReload = true
                     window.dashboardController.populateCategoryFilter();
                 }
                 console.log('Display refresh completed');
@@ -564,8 +571,15 @@ class TransactionManager {
                             
                             // Refresh display
                             this.renderTransactions();
-                            this.renderCategoryOptions();
-                            
+
+                            // Reload categories before rendering options
+                            try {
+                                await this.loadCategories();
+                            } catch (categoryError) {
+                                console.warn('Error reloading categories in recovery path:', categoryError);
+                            }
+
+                            // Update dashboard category filter if it exists
                             if (window.dashboardController) {
                                 window.dashboardController.populateCategoryFilter();
                             }

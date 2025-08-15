@@ -85,3 +85,29 @@ src/main/resources/static/
 - **SQL logging**: Enabled via `spring.jpa.show-sql=true` in application.properties
 - **Console logging**: Extensive console.log usage in frontend for API request/response tracking
 - **Error boundaries**: Try-catch blocks around all async operations with user-friendly error messages
+
+## Documentation and Change Tracking
+
+### Prompt and Change History
+To ensure the project maintains a clear history of changes and decisions:
+
+1. **Document Prompts**: Record all user prompts that lead to significant changes or additions in the project.
+   - Include the date, the prompt, and the context of the request.
+
+2. **Track Changes**: Maintain a log of all changes made, including:
+   - Files modified
+   - Code snippets added or updated
+   - Purpose of the change
+
+3. **Centralized Log**: Store this history in a dedicated file (e.g., `CHANGELOG.md` or `PROMPT_HISTORY.md`) in the repository.
+
+4. **Versioning**: Use meaningful commit messages to reflect the changes made in response to prompts.
+
+5. **Review Process**: Periodically review the history to ensure consistency and identify areas for improvement.
+
+### Example Entry
+- **Date**: August 14, 2025
+- **Prompt**: "Can you add to the copilot instructions to start documenting prompts and changes done to ensure that history and records of the project are maintained for future reference?"
+- **Changes**:
+  - Updated `copilot-instructions.md` to include a new section on documentation and change tracking.
+  - Suggested maintaining a `PROMPT_HISTORY.md` file for centralized logging.

@@ -2,12 +2,305 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Login</title>
-    <link rel="icon" type="image/x-icon" href="static/favicon.ico">
-    <link rel="stylesheet" href="static/styles.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Brooks - Your Personal Finance Stream</title>
+    <meta name="description" content="Track income, expenses, budgets, and savings goals with Brooks. Simple, secure personal finance app that helps your financial stream flow toward your dreams.">
+    <meta name="keywords" content="personal finance, budgeting, expense tracking, savings goals, financial planning, money management">
+    <meta name="author" content="Brooks Finance">
+    
+    <meta property="og:title" content="Brooks - Your Personal Finance Stream">
+    <meta property="og:description" content="Track income, expenses, budgets, and savings goals with Brooks. Simple, secure personal finance app that helps your financial stream flow toward your dreams.">
+    <meta property="og:type" content="website">
+    
+    <link rel="stylesheet" href="css/landing.css">
+    <link rel="icon" type="image/svg+xml" href="images/brooks.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 </head>
 <body>
-    <a href="/login.html">Login</a>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="nav">
+                <div class="logo">
+                    <i data-lucide="waves" class="logo-icon"></i>
+                    <span class="logo-text">Brooks</span>
+                </div>
+                <div class="nav-links">
+                    <a href="#features" class="nav-link">Features</a>
+                    <a href="#about" class="nav-link">About</a>
+                    <a href="login.html" class="btn btn-secondary">Log In</a>
+                    <a href="register.html" class="btn btn-primary">Sign Up</a>
+                </div>
+                <button class="mobile-menu-toggle" id="mobileMenuToggle">
+                    <i data-lucide="menu"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Mobile Menu -->
+    <div class="mobile-menu" id="mobileMenu">
+        <div class="mobile-menu-content">
+            <a href="#features" class="mobile-nav-link">Features</a>
+            <a href="#about" class="mobile-nav-link">About</a>
+            <a href="login.html" class="mobile-nav-link">Log In</a>
+            <a href="register.html" class="btn btn-primary mobile-cta">Sign Up</a>
+        </div>
+    </div>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container">
+            <div class="hero-content">
+                <div class="hero-text">
+                    <h1 class="hero-title">
+                        Your financial journey flows like a 
+                        <span class="text-gradient">gentle stream</span>
+                    </h1>
+                    <p class="hero-description">
+                        Brooks helps you navigate your personal finances with clarity and confidence. 
+                        Track spending, set budgets, and watch your savings grow - one small step at a time.
+                    </p>
+                    <div class="hero-cta">
+                        <a href="register.html" class="btn btn-primary btn-large">
+                            <i data-lucide="arrow-right"></i>
+                            Start Your Journey
+                        </a>
+                        <a href="#features" class="btn btn-ghost btn-large">
+                            Learn More
+                        </a>
+                    </div>
+                    <div class="hero-trust">
+                        <div class="trust-item">
+                            <i data-lucide="shield-check"></i>
+                            <span>Reliable security</span>
+                        </div>
+                        <div class="trust-item">
+                            <i data-lucide="eye-off"></i>
+                            <span>Privacy-first design</span>
+                        </div>
+                        <div class="trust-item">
+                            <i data-lucide="users"></i>
+                            <span>Grow with others</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="hero-visual">
+                    <div class="hero-card">
+                        <div class="card-header">
+                            <h3>Your Financial Overview</h3>
+                            <span class="status-badge">Up to date</span>
+                        </div>
+                        <div class="card-stats">
+                            <div class="stat">
+                                <span class="stat-label">Monthly Income</span>
+                                <span class="stat-value income">+$4,250</span>
+                            </div>
+                            <div class="stat">
+                                <span class="stat-label">Expenses</span>
+                                <span class="stat-value expense">-$3,180</span>
+                            </div>
+                            <div class="stat">
+                                <span class="stat-label">Net Savings</span>
+                                <span class="stat-value savings">+$1,070</span>
+                            </div>
+                        </div>
+                        <div class="card-progress">
+                            <div class="progress-label">Budget Progress</div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: 75%"></div>
+                            </div>
+                            <span class="progress-text">75% of monthly budget used</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features" id="features">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Everything you need to manage your finances</h2>
+                <p class="section-description">
+                    Simple, powerful tools that grow with your financial journey
+                </p>
+            </div>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i data-lucide="trending-up"></i>
+                    </div>
+                    <h3 class="feature-title">Track Spending</h3>
+                    <p class="feature-description">
+                        Monitor your expenses across categories with intuitive visualizations and insights.
+                    </p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i data-lucide="target"></i>
+                    </div>
+                    <h3 class="feature-title">Set Budgets</h3>
+                    <p class="feature-description">
+                        Create realistic budgets and receive gentle reminders to stay on track.
+                    </p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i data-lucide="bar-chart-3"></i>
+                    </div>
+                    <h3 class="feature-title">Visualize Progress</h3>
+                    <p class="feature-description">
+                        Beautiful charts and reports help you understand your financial patterns.
+                    </p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i data-lucide="piggy-bank"></i>
+                    </div>
+                    <h3 class="feature-title">Savings Goals</h3>
+                    <p class="feature-description">
+                        Set goals and watch your savings grow with milestone celebrations.
+                    </p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i data-lucide="calendar"></i>
+                    </div>
+                    <h3 class="feature-title">Monthly Views</h3>
+                    <p class="feature-description">
+                        Analyze spending patterns and trends across different time periods.
+                    </p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i data-lucide="shield"></i>
+                    </div>
+                    <h3 class="feature-title">Secure & Private</h3>
+                    <p class="feature-description">
+                        Your data is encrypted and never shared. Privacy is built into every feature.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section class="about" id="about">
+        <div class="container">
+            <div class="about-content">
+                <div class="about-text">
+                    <h2 class="about-title">Why Brooks?</h2>
+                    <p class="about-description">
+                        Just like a brook - a small, gentle stream - your financial journey doesn't have to be 
+                        overwhelming or turbulent. Brooks helps you make small, consistent steps that flow 
+                        naturally toward your bigger financial goals.
+                    </p>
+                    <div class="about-features">
+                        <div class="about-feature">
+                            <i data-lucide="heart"></i>
+                            <div>
+                                <h4>Human-centered design</h4>
+                                <p>Built for real people, not financial institutions</p>
+                            </div>
+                        </div>
+                        <div class="about-feature">
+                            <i data-lucide="zap"></i>
+                            <div>
+                                <h4>Fast and lightweight</h4>
+                                <p>No bloat, just the features you actually need</p>
+                            </div>
+                        </div>
+                        <div class="about-feature">
+                            <i data-lucide="coffee"></i>
+                            <div>
+                                <h4>Made with care</h4>
+                                <p>Thoughtfully crafted by someone who understands the struggle</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="about-visual">
+                    <div class="stream-visual">
+                        <div class="stream-line"></div>
+                        <div class="stream-dots">
+                            <div class="stream-dot active">
+                                <i data-lucide="dollar-sign"></i>
+                            </div>
+                            <div class="stream-dot">
+                                <i data-lucide="trending-up"></i>
+                            </div>
+                            <div class="stream-dot">
+                                <i data-lucide="target"></i>
+                            </div>
+                            <div class="stream-dot">
+                                <i data-lucide="trophy"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta">
+        <div class="container">
+            <div class="cta-content">
+                <h2 class="cta-title">Ready to start your financial journey?</h2>
+                <p class="cta-description">
+                    Join thousands of users who've found their financial flow with Brooks
+                </p>
+                <div class="cta-buttons">
+                    <a href="register.html" class="btn btn-primary btn-large">
+                        <i data-lucide="user-plus"></i>
+                        Create Free Account
+                    </a>
+                    <a href="login.html" class="btn btn-ghost btn-large">
+                        <i data-lucide="log-in"></i>
+                        Sign In
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <div class="logo">
+                        <i data-lucide="waves"></i>
+                        <span>Brooks</span>
+                    </div>
+                    <p class="footer-tagline">Your personal finance stream</p>
+                </div>
+                <div class="footer-links">
+                    <div class="footer-section">
+                        <h4>Product</h4>
+                        <a href="#features">Features</a>
+                        <a href="dashboard.html">Dashboard</a>
+                        <a href="#about">About</a>
+                    </div>
+                    <div class="footer-section">
+                        <h4>Support</h4>
+                        <a href="mailto:support@brooks.app">Contact</a>
+                        <a href="/help">Help Center</a>
+                        <a href="/privacy">Privacy Policy</a>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2025 Brooks. Made with care for your financial wellbeing.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="js/landing.js"></script>
 </body>
 </html>

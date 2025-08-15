@@ -1,6 +1,7 @@
 package com.rain.finapp.model;
 
 import jakarta.persistence.*;
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -26,6 +27,9 @@ public class User {
 
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
+
+    @Column(name = "monthly_budget", precision = 19, scale = 2)
+    private BigDecimal monthlyBudget;
 
     // Bidirectional relationship with transactions
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
@@ -54,4 +58,7 @@ public class User {
 
     public List<Transaction> getTransactions() { return transactions; }
     public void setTransactions(List<Transaction> transactions) { this.transactions = transactions; }
+
+    public BigDecimal getMonthlyBudget() { return monthlyBudget; }
+    public void setMonthlyBudget(BigDecimal monthlyBudget) { this.monthlyBudget = monthlyBudget; }
 }

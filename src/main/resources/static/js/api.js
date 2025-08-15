@@ -134,6 +134,25 @@ class ApiClient {
     }
 
     /**
+     * Get user's monthly budget
+     */
+    async getMonthlyBudget() {
+        return this.request('/api/user/monthly-budget', {
+            method: 'GET'
+        });
+    }
+
+    /**
+     * Update user's monthly budget
+     */
+    async updateMonthlyBudget(monthlyBudget) {
+        return this.request('/api/user/monthly-budget', {
+            method: 'PUT',
+            body: JSON.stringify({ monthlyBudget: monthlyBudget.toString() })
+        });
+    }
+
+    /**
      * Register new user
      */
     async register(username, email, password) {
