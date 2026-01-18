@@ -5,6 +5,8 @@ class DashboardController {
     constructor() {
         this.transactionManager = null;
         this.monthlyBudget = 0;
+        this.currentViewMode = 'monthly'; // Always in monthly view
+        this.currentMonth = new Date(); // For monthly view navigation
         this.initialize();
         this.initializeEventListeners();
     }
@@ -24,11 +26,17 @@ class DashboardController {
             });
         }
 
-        // Monthly budget button
-        const setBudgetBtn = document.getElementById('setBudgetBtn');
-        if (setBudgetBtn) {
-            setBudgetBtn.addEventListener('click', this.showBudgetModal.bind(this));
-        }
+        // Monthly navigation controls
+        const prevMonthBtn = document.getElementById('prevMonthBtn');
+        const nextMonthBtn = document.getElementById('nextMonthBtn');
+        const currentMonthBtn = document.getElementById('currentMonthBtn');
+
+        if (prevMonthBtn) prevMonthBtn.addEventListener('click', this.navigateToPreviousMonth.bind(this));
+        if (nextMonthBtn) nextMonthBtn.addEventListener('click', this.navigateToNextMonth.bind(this));
+        if (currentMonthBtn) currentMonthBtn.addEventListener('click', this.navigateToCurrentMonth.bind(this));
+        
+        // Initialize monthly view
+        this.updateMonthDisplay();
 
         // Modal controls
         const closeModal = document.getElementById('closeModal');
@@ -289,6 +297,9 @@ class DashboardController {
         const transactions = this.transactionManager.transactions;
         const categories = this.transactionManager.categories;
 
+        // Get transactions for current month
+        const monthlyTransactions = this.getTransactionsForMonth(this.currentMonth);
+
         //Get category count from backend
         let categoryCount = categories.length; // fallback to local count
         try {
@@ -297,20 +308,15 @@ class DashboardController {
             console.warn('Could not fetch category count from backend:', error);
         }
 
-        // Get transaction count from backend
-        let transactionCount = transactions.length; // fallback to local count
-        try {
-            transactionCount = await window.apiClient.get('/api/transactions/count');
-        } catch (error) {
-            console.warn('Could not fetch transaction count from backend:', error);
-        }
+        // Use monthly transaction count
+        const transactionCount = monthlyTransactions.length;
 
-        // Calculate income and expenses
-        const totalIncome = transactions
+        // Calculate income and expenses for current month only
+        const totalIncome = monthlyTransactions
             .filter(t => t.type === 'INCOME')
             .reduce((sum, t) => sum + parseFloat(t.amount), 0);
 
-        const totalExpenses = transactions
+        const totalExpenses = monthlyTransactions
             .filter(t => t.type === 'EXPENSE')
             .reduce((sum, t) => sum + parseFloat(t.amount), 0);
 
@@ -346,63 +352,6 @@ class DashboardController {
         const transactionCountElement = document.getElementById('transactionCount');
         if (transactionCountElement) {
             transactionCountElement.textContent = transactionCount.toString();
-        }
-
-        // Update budget status
-        this.updateBudgetStatus(totalExpenses);
-    }
-
-    updateBudgetStatus(totalExpenses) {
-        const budgetStatusElement = document.getElementById('budgetStatus');
-        const budgetProgressBar = document.getElementById('budgetProgress');
-        const budgetProgressFill = document.getElementById('budgetProgressFill');
-
-        if (this.monthlyBudget > 0) {
-            const percentage = (totalExpenses / this.monthlyBudget) * 100;
-            const remaining = this.monthlyBudget - totalExpenses;
-            
-            budgetStatusElement.textContent = `$${totalExpenses.toFixed(2)} / $${this.monthlyBudget.toFixed(2)}`;
-            budgetProgressBar.style.display = 'block';
-            budgetProgressFill.style.width = `${Math.min(percentage, 100)}%`;
-            
-            // Color based on percentage
-            budgetProgressFill.className = 'budget-progress-fill';
-            budgetStatusElement.className = 'stat-value';
-            
-            if (percentage > 100) {
-                budgetProgressFill.classList.add('over-budget');
-                budgetStatusElement.classList.add('expense');
-            } else if (percentage > 90) {
-                budgetProgressFill.classList.add('warning');
-            } else {
-                budgetStatusElement.classList.add('income');
-            }
-        } else {
-            budgetStatusElement.textContent = 'Set Budget';
-            budgetStatusElement.className = 'stat-value';
-            budgetProgressBar.style.display = 'none';
-        }
-    }
-
-    async showBudgetModal() {
-        const currentBudget = this.monthlyBudget > 0 ? this.monthlyBudget.toFixed(2) : '';
-        const budgetInput = prompt(`Set your monthly budget:\n(Current: $${currentBudget || '0.00'})`, currentBudget);
-        
-        if (budgetInput !== null && budgetInput.trim() !== '') {
-            const budgetAmount = parseFloat(budgetInput);
-            if (!isNaN(budgetAmount) && budgetAmount >= 0) {
-                try {
-                    await window.apiClient.updateMonthlyBudget(budgetAmount);
-                    this.monthlyBudget = budgetAmount;
-                    this.updateStats(); // Refresh the display
-                    this.showMessage(`Monthly budget set to $${budgetAmount.toFixed(2)}!`, 'success');
-                } catch (error) {
-                    console.error('Error updating monthly budget:', error);
-                    this.showMessage('Failed to update monthly budget. Please try again.', 'error');
-                }
-            } else {
-                this.showMessage('Please enter a valid budget amount (0 or greater)', 'error');
-            }
         }
     }
 
@@ -745,17 +694,11 @@ class DashboardController {
         if (typeFilter) typeFilter.value = '';
         if (descriptionFilter) descriptionFilter.value = '';
         
-        // Reset filter group visibility
-        const filterGroups = document.querySelectorAll('.filter-group');
-        filterGroups.forEach(group => group.classList.remove('active'));
+        // Update filter UI state
+        this.handleFilterMethodChange();
         
-        const categoryFilterGroup = document.getElementById('categoryFilterGroup');
-        if (categoryFilterGroup) {
-            categoryFilterGroup.classList.add('active');
-        }
-        
-        // Re-render all transactions
-        this.transactionManager.renderTransactions();
+        // Re-render transactions based on current view mode
+        this.renderTransactionsInMode();
     }
 
     setDefaultDate() {
@@ -911,6 +854,437 @@ class DashboardController {
         setTimeout(() => {
             document.getElementById('transactionAmount').focus();
         }, 100);
+    }
+
+    // ===== MONTHLY VIEW METHODS =====
+
+    /**
+     * Switch view mode (simplified - now only monthly)
+     */
+    switchViewMode(mode) {
+        this.currentViewMode = 'monthly';
+        this.currentMonth = new Date();
+        this.updateMonthDisplay();
+        this.renderTransactionsInMode();
+    }
+
+    /**
+     * Navigate to previous month
+     */
+    async navigateToPreviousMonth() {
+        this.currentMonth.setMonth(this.currentMonth.getMonth() - 1);
+        this.updateMonthDisplay();
+        // Reload categories to ensure all categories are available
+        await this.transactionManager.loadCategories();
+        this.populateCategoryFilter();
+        // Update stats for the new month
+        await this.updateStats();
+        this.renderTransactionsInMode();
+    }
+
+    /**
+     * Navigate to next month
+     */
+    async navigateToNextMonth() {
+        this.currentMonth.setMonth(this.currentMonth.getMonth() + 1);
+        this.updateMonthDisplay();
+        // Reload categories to ensure all categories are available
+        await this.transactionManager.loadCategories();
+        this.populateCategoryFilter();
+        // Update stats for the new month
+        await this.updateStats();
+        this.renderTransactionsInMode();
+    }
+
+    /**
+     * Navigate to current month
+     */
+    async navigateToCurrentMonth() {
+        this.currentMonth = new Date();
+        this.updateMonthDisplay();
+        // Reload categories to ensure all categories are available
+        await this.transactionManager.loadCategories();
+        this.populateCategoryFilter();
+        // Update stats for the new month
+        await this.updateStats();
+        this.renderTransactionsInMode();
+    }
+
+    /**
+     * Update the month display text
+     */
+    updateMonthDisplay() {
+        const monthDisplay = document.getElementById('currentMonthDisplay');
+        if (monthDisplay) {
+            const options = { year: 'numeric', month: 'long' };
+            monthDisplay.textContent = this.currentMonth.toLocaleDateString('en-US', options);
+        }
+    }
+
+    /**
+     * Render transactions based on current view mode
+     */
+    renderTransactionsInMode() {
+        if (this.currentViewMode === 'monthly') {
+            this.renderMonthlyView();
+        } else {
+            // Use existing rendering logic for all-time view
+            this.transactionManager.renderTransactions();
+        }
+    }
+
+    /**
+     * Render transactions in monthly view with monthly summary
+     */
+    renderMonthlyView() {
+        const container = document.getElementById('transactionList');
+        if (!container) return;
+
+        // Get transactions for the current month
+        const monthlyTransactions = this.getTransactionsForMonth(this.currentMonth);
+        
+        // Apply any active filters to the monthly transactions
+        const filteredTransactions = this.applyFiltersToTransactions(monthlyTransactions);
+
+        // Calculate monthly statistics
+        const monthlyStats = this.calculateMonthlyStats(monthlyTransactions);
+
+        // Render monthly summary and transactions
+        container.innerHTML = `
+            <div class="monthly-summary">
+                <h3>${this.currentMonth.toLocaleDateString('en-US', { year: 'numeric', month: 'long' })}</h3>
+                <div class="monthly-stats">
+                    <div class="monthly-stat">
+                        <span class="monthly-stat-label">Income</span>
+                        <span class="monthly-stat-value income">$${monthlyStats.income.toFixed(2)}</span>
+                    </div>
+                    <div class="monthly-stat">
+                        <span class="monthly-stat-label">Expenses</span>
+                        <span class="monthly-stat-value expense">$${monthlyStats.expenses.toFixed(2)}</span>
+                    </div>
+                    <div class="monthly-stat">
+                        <span class="monthly-stat-label">Net</span>
+                        <span class="monthly-stat-value balance">$${monthlyStats.net.toFixed(2)}</span>
+                    </div>
+                    <div class="monthly-stat">
+                        <span class="monthly-stat-label">Transactions</span>
+                        <span class="monthly-stat-value">${monthlyTransactions.length}</span>
+                    </div>
+                </div>
+                ${this.renderMonthlyBudgetProgress(monthlyStats.expenses)}
+            </div>
+            <div class="monthly-transactions">
+                ${this.renderMonthlyTransactionsList(filteredTransactions)}
+            </div>
+        `;
+    }
+
+    /**
+     * Get transactions for a specific month
+     */
+    getTransactionsForMonth(month) {
+        const year = month.getFullYear();
+        const monthIndex = month.getMonth();
+        
+        return this.transactionManager.transactions.filter(transaction => {
+            const transactionDate = new Date(transaction.transactionDate);
+            return transactionDate.getFullYear() === year && 
+                   transactionDate.getMonth() === monthIndex;
+        });
+    }
+
+    /**
+     * Apply current filters to a set of transactions
+     */
+    applyFiltersToTransactions(transactions) {
+        const categoryFilter = document.getElementById('categoryFilter');
+        const typeFilter = document.getElementById('typeFilter');
+        const descriptionFilter = document.getElementById('descriptionFilter');
+        const minAmountFilter = document.getElementById('minAmountFilter');
+        const maxAmountFilter = document.getElementById('maxAmountFilter');
+        
+        let filtered = [...transactions];
+
+        // Apply category filter
+        if (categoryFilter && categoryFilter.value) {
+            filtered = filtered.filter(t => t.category === categoryFilter.value);
+        }
+
+        // Apply type filter
+        if (typeFilter && typeFilter.value) {
+            filtered = filtered.filter(t => t.type === typeFilter.value);
+        }
+
+        // Apply description filter
+        if (descriptionFilter && descriptionFilter.value) {
+            const searchTerm = descriptionFilter.value.toLowerCase();
+            filtered = filtered.filter(t => 
+                (t.description || '').toLowerCase().includes(searchTerm)
+            );
+        }
+
+        // Apply amount filters
+        const minAmount = minAmountFilter ? parseFloat(minAmountFilter.value) : null;
+        const maxAmount = maxAmountFilter ? parseFloat(maxAmountFilter.value) : null;
+        
+        if (!isNaN(minAmount) || !isNaN(maxAmount)) {
+            filtered = filtered.filter(t => {
+                const amount = parseFloat(t.amount);
+                let inRange = true;
+                
+                if (!isNaN(minAmount) && minAmount !== null) {
+                    inRange = inRange && (amount >= minAmount);
+                }
+                if (!isNaN(maxAmount) && maxAmount !== null) {
+                    inRange = inRange && (amount <= maxAmount);
+                }
+                
+                return inRange;
+            });
+        }
+
+        return filtered;
+    }
+
+    /**
+     * Calculate statistics for monthly transactions
+     */
+    calculateMonthlyStats(transactions) {
+        const income = transactions
+            .filter(t => t.type === 'INCOME')
+            .reduce((sum, t) => sum + parseFloat(t.amount), 0);
+            
+        const expenses = transactions
+            .filter(t => t.type === 'EXPENSE')
+            .reduce((sum, t) => sum + parseFloat(t.amount), 0);
+            
+        return {
+            income,
+            expenses,
+            net: income - expenses
+        };
+    }
+
+    /**
+     * Render monthly budget progress
+     */
+    renderMonthlyBudgetProgress(monthlyExpenses) {
+        const percentage = this.monthlyBudget > 0 ? (monthlyExpenses / this.monthlyBudget) * 100 : 0;
+        const remaining = this.monthlyBudget - monthlyExpenses;
+        const isOverBudget = percentage > 100;
+
+        // Render progress section if budget is set
+        const progressSection = this.monthlyBudget > 0 ? `
+            <div class="monthly-budget-progress">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                    <span style="font-weight: 600; color: #374151;">Monthly Budget Progress</span>
+                    <span style="font-size: 0.875rem; color: ${isOverBudget ? '#dc2626' : '#059669'};">
+                        ${percentage.toFixed(1)}% used
+                    </span>
+                </div>
+                <div class="monthly-budget-bar">
+                    <div class="monthly-budget-fill ${isOverBudget ? 'over-budget' : ''}" 
+                         style="width: ${Math.min(percentage, 100)}%"></div>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-top: 0.5rem; font-size: 0.875rem;">
+                    <span>Spent: $${monthlyExpenses.toFixed(2)}</span>
+                    <span>Budget: $${this.monthlyBudget.toFixed(2)}</span>
+                </div>
+                <div style="text-align: center; margin-top: 0.5rem; font-weight: 600; color: ${remaining >= 0 ? '#059669' : '#dc2626'};">
+                    ${remaining >= 0 ? 'Remaining' : 'Over budget'}: $${Math.abs(remaining).toFixed(2)}
+                </div>
+            </div>
+        ` : '<p style="text-align: center; color: #6b7280; margin-top: 1rem;">No monthly budget set</p>';
+
+        // Render budget setter form below the progress
+        const budgetSetterForm = `
+            <div class="monthly-budget-setter" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e5e7eb;">
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <input 
+                        type="number" 
+                        id="monthlyBudgetInput" 
+                        placeholder="Set monthly budget" 
+                        value="${this.monthlyBudget > 0 ? this.monthlyBudget : ''}" 
+                        style="flex: 1; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.875rem;"
+                        min="0"
+                        step="0.01"
+                    />
+                    <button 
+                        onclick="window.dashboardController.saveMonthlyBudgetFromInput()" 
+                        style="padding: 0.5rem 1rem; background: #2563eb; color: white; border: none; border-radius: 6px; font-weight: 500; cursor: pointer; font-size: 0.875rem; white-space: nowrap;"
+                    >
+                        ${this.monthlyBudget > 0 ? 'Update' : 'Set Budget'}
+                    </button>
+                </div>
+            </div>
+        `;
+
+        return progressSection + budgetSetterForm;
+    }
+
+    /**
+     * Render transactions list for monthly view
+     */
+    renderMonthlyTransactionsList(transactions) {
+        // Group transactions by category for monthly view
+        const groupedTransactions = transactions.reduce((groups, transaction) => {
+            const category = transaction.category || 'Uncategorized';
+            if (!groups[category]) {
+                groups[category] = [];
+            }
+            groups[category].push(transaction);
+            return groups;
+        }, {});
+
+        // Get all categories (including those without transactions in this month)
+        // Start with categories from the backend (in timestamp order)
+        const allCategories = [...(Array.isArray(this.transactionManager.categories) ? this.transactionManager.categories : [])];
+        
+        // Add any categories that exist only in transactions but not in stored categories
+        Object.keys(groupedTransactions).forEach(category => {
+            if (!allCategories.includes(category)) {
+                allCategories.push(category);
+            }
+        });
+        
+        // If no categories exist at all, show empty state
+        if (allCategories.length === 0) {
+            return '<div class="no-transactions"><p>No categories yet. Create your first transaction or add a category!</p></div>';
+        }
+
+        // Render all categories, keeping Income first but preserving timestamp order for others
+        const sortedCategories = allCategories.sort((a, b) => {
+            // Income category always comes first
+            if (a === 'Income') return -1;
+            if (b === 'Income') return 1;
+            // For other categories, maintain the order they appear in the allCategories array
+            // (which preserves the timestamp order from backend)
+            return allCategories.indexOf(b) - allCategories.indexOf(a);
+        });
+
+        return sortedCategories
+            .map(category => this.transactionManager.renderCategorySection(category, groupedTransactions[category] || []))
+            .join('');
+    }
+
+    /**
+     * Save monthly budget from input field in monthly view
+     */
+    async saveMonthlyBudgetFromInput() {
+        const input = document.getElementById('monthlyBudgetInput');
+        if (!input) return;
+
+        const budget = parseFloat(input.value);
+        
+        if (isNaN(budget) || budget < 0) {
+            this.showMessage('Please enter a valid budget amount', 'error');
+            return;
+        }
+
+        try {
+            await this.saveMonthlyBudget(budget);
+            // Re-render the monthly view to update the progress bar
+            this.renderMonthlyView();
+        } catch (error) {
+            console.error('Error saving monthly budget:', error);
+            this.showMessage('Failed to save monthly budget', 'error');
+        }
+    }
+
+    /**
+     * Override the applyFilters method to work with monthly view
+     */
+    applyFilters() {
+        if (this.currentViewMode === 'monthly') {
+            // Re-render monthly view with filters applied
+            this.renderMonthlyView();
+        } else {
+            // Use existing filter logic for all-time view
+            const categoryFilter = document.getElementById('categoryFilter');
+            const dateFilter = document.getElementById('dateFilter');
+            const startDateFilter = document.getElementById('startDateFilter');
+            const endDateFilter = document.getElementById('endDateFilter');
+            const minAmountFilter = document.getElementById('minAmountFilter');
+            const maxAmountFilter = document.getElementById('maxAmountFilter');
+            const typeFilter = document.getElementById('typeFilter');
+            const descriptionFilter = document.getElementById('descriptionFilter');
+            
+            // Don't exit early if categoryFilter is missing - other filters should still work
+            
+            const selectedCategory = categoryFilter ? categoryFilter.value : '';
+            const selectedDate = dateFilter ? dateFilter.value : '';
+            const startDate = startDateFilter ? startDateFilter.value : '';
+            const endDate = endDateFilter ? endDateFilter.value : '';
+            const minAmount = minAmountFilter ? parseFloat(minAmountFilter.value) : null;
+            const maxAmount = maxAmountFilter ? parseFloat(maxAmountFilter.value) : null;
+            const selectedType = typeFilter ? typeFilter.value : '';
+            const searchDescription = descriptionFilter ? descriptionFilter.value.toLowerCase() : '';
+
+            let filteredTransactions = [...this.transactionManager.transactions];
+
+            // Apply category filter
+            if (selectedCategory) {
+                filteredTransactions = filteredTransactions.filter(t => t.category === selectedCategory);
+            }
+
+            // Apply transaction type filter
+            if (selectedType) {
+                filteredTransactions = filteredTransactions.filter(t => t.type === selectedType);
+            }
+
+            // Apply description filter
+            if (searchDescription) {
+                filteredTransactions = filteredTransactions.filter(t => 
+                    (t.description || '').toLowerCase().includes(searchDescription)
+                );
+            }
+
+            // Apply amount range filter
+            if (!isNaN(minAmount) || !isNaN(maxAmount)) {
+                filteredTransactions = filteredTransactions.filter(t => {
+                    const amount = parseFloat(t.amount);
+                    let inRange = true;
+                    
+                    if (!isNaN(minAmount) && minAmount !== null) {
+                        inRange = inRange && (amount >= minAmount);
+                    }
+                    if (!isNaN(maxAmount) && maxAmount !== null) {
+                        inRange = inRange && (amount <= maxAmount);
+                    }
+                    
+                    return inRange;
+                });
+            }
+
+            // Apply date filters
+            if (selectedDate) {
+                const filterDate = new Date(selectedDate);
+                filteredTransactions = filteredTransactions.filter(t => {
+                    const transactionDate = new Date(t.transactionDate);
+                    return transactionDate.toDateString() === filterDate.toDateString();
+                });
+            } else if (startDate || endDate) {
+                filteredTransactions = filteredTransactions.filter(t => {
+                    const transactionDate = new Date(t.transactionDate);
+                    let inRange = true;
+                    
+                    if (startDate) {
+                        const start = new Date(startDate);
+                        inRange = inRange && (transactionDate >= start);
+                    }
+                    if (endDate) {
+                        const end = new Date(endDate);
+                        end.setHours(23, 59, 59, 999); // Include the entire end date
+                        inRange = inRange && (transactionDate <= end);
+                    }
+                    
+                    return inRange;
+                });
+            }
+
+            // Display filtered transactions using existing method
+            this.displayFilteredTransactions(filteredTransactions);
+        }
     }
 }
 

@@ -52,7 +52,19 @@ page.tsx
 
 
 ### Github ###
-/.github
-/.github/instructions
-/.github/prompts
+.github/
+
+
+### DOCS ###
+PROJECT_DOC.md
+
+
+### Logs ###
+logs/
+*.log
+
+
+### mcp ###
+.mcp.json
+
 

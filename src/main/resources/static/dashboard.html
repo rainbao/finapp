@@ -51,28 +51,31 @@
                     <h3>Transactions</h3>
                     <span id="transactionCount" class="stat-value">0</span>
                 </div>
-                <div class="stat-card budget-card budget-card-extended">
-                    <h3>Monthly Budget</h3>
-                    <span id="budgetStatus" class="stat-value">Set Budget</span>
-                    <div id="budgetProgress" class="budget-progress-bar" style="display: none;">
-                        <div id="budgetProgressFill" class="budget-progress-fill"></div>
-                    </div>
-                    <button id="setBudgetBtn" class="btn-set-budget-small">Set</button>
-                </div>
             </div>
         </section>
 
         <!-- Transaction Management -->
         <section class="transactions-section">
             <div class="section-header">
-                <h2>Your Transactions</h2>
+                <div class="header-top-row">
+                    <h2>Your Transactions</h2>
+                    
+                    <!-- Monthly Navigation -->
+                    <div id="monthlyNavigation" class="monthly-nav">
+                        <button id="prevMonthBtn" class="nav-btn">&lt;</button>
+                        <span id="currentMonthDisplay" class="month-display"></span>
+                        <button id="nextMonthBtn" class="nav-btn">&gt;</button>
+                        <button id="currentMonthBtn" class="btn-outline-small">Today</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="filters-row">
                 <div class="transaction-filters">
                     <div class="filter-method-group">
                         <label class="filter-label">Filter By:</label>
                         <select id="filterMethod">
                             <option value="category">Category</option>
-                            <option value="dateRange">Date Range</option>
-                            <option value="specificDate">Specific Date</option>
                             <option value="amount">Amount Range</option>
                             <option value="type">Transaction Type</option>
                             <option value="description">Description</option>
@@ -84,26 +87,6 @@
                         <select id="categoryFilter">
                             <option value="">All Categories</option>
                         </select>
-                    </div>
-                    
-                    <!-- Date Range Filter -->
-                    <div id="dateRangeFilterGroup" class="filter-group">
-                        <div class="date-filter-group">
-                            <label class="filter-label">From:</label>
-                            <input type="date" id="startDateFilter" placeholder="From date" title="Start Date">
-                        </div>
-                        <div class="date-filter-group">
-                            <label class="filter-label">To:</label>
-                            <input type="date" id="endDateFilter" placeholder="To date" title="End Date">
-                        </div>
-                    </div>
-                    
-                    <!-- Specific Date Filter -->
-                    <div id="specificDateFilterGroup" class="filter-group">
-                        <div class="date-filter-group">
-                            <label class="filter-label">Date:</label>
-                            <input type="date" id="dateFilter" placeholder="Specific date" title="Filter by specific date">
-                        </div>
                     </div>
                     
                     <!-- Amount Range Filter -->
