@@ -1,10 +1,23 @@
-HELP.md
+# =============================================================================
+# Maven Build Files
+# =============================================================================
 target/
 .mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
 
-### STS ###
+# =============================================================================
+# IDE - IntelliJ IDEA
+# =============================================================================
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+
+# =============================================================================
+# IDE - Eclipse/STS
+# =============================================================================
 .apt_generated
 .classpath
 .factorypath
@@ -12,14 +25,11 @@ target/
 .settings
 .springBeans
 .sts4-cache
+bin/
 
-### IntelliJ IDEA ###
-.idea
-*.iws
-*.iml
-*.ipr
-
-### NetBeans ###
+# =============================================================================
+# IDE - NetBeans
+# =============================================================================
 /nbproject/private/
 /nbbuild/
 /dist/
@@ -29,42 +39,153 @@ build/
 !**/src/main/**/build/
 !**/src/test/**/build/
 
-### VS Code ###
+# =============================================================================
+# IDE - VS Code
+# =============================================================================
 .vscode/
+*.code-workspace
 
-
-### Environment Variables ###
+# =============================================================================
+# Environment & Secrets - CRITICAL FOR SECURITY
+# =============================================================================
 .env
+.env.local
+.env.*.local
+.env.production
+.env.development
+.env.test
 
-### .bat ###
+# Startup scripts with hardcoded credentials (use .env instead!)
 start-app.bat
 start-app-secure.bat
 start-app-dev.bat
-
-### Secure Startup Scripts ###
-start-app-secure.bat
 start-app.ps1
 
+# =============================================================================
+# Docker - Keep Dockerfile and compose files, ignore runtime data
+# =============================================================================
+# Keep these (needed for deployment):
+# - Dockerfile
+# - docker-compose.yml
+# - docker-compose.*.yml
+# Ignore these (generated at runtime):
+.docker/
+docker-compose.override.yml
 
-### Layout Stuff ###
-layout.tsx
-page.tsx
-
-
-### Github ###
-.github/
-
-
-### DOCS ###
-PROJECT_DOC.md
-
-
-### Logs ###
+# =============================================================================
+# Logs
+# =============================================================================
 logs/
 *.log
+*.log.*
+*.gz
+spring.log
+application.log
 
+# =============================================================================
+# OS Generated Files
+# =============================================================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
 
-### mcp ###
+# =============================================================================
+# Temporary Files
+# =============================================================================
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+.cache/
+
+# =============================================================================
+# Test Coverage & Reports
+# =============================================================================
+coverage/
+*.lcov
+.nyc_output/
+
+# =============================================================================
+# Database Files (if using local SQLite for testing)
+# =============================================================================
+*.db
+*.sqlite
+*.sqlite3
+
+# =============================================================================
+# Documentation (Personal Notes)
+# =============================================================================
+# Keep these out of version control (personal notes):
+NOTES.md
+PROJECT_DOC.md
+TODO.md
+SCRATCH.md
+DOCKER-EXPLAINED.md
+DOCKER-VS-TRADITIONAL.md
+GITHUB-CICD-EXPLAINED.md
+GITIGNORE-EXPLAINED.md
+
+# Keep these IN version control (project documentation):
+# - README.md
+# - DEPLOYMENT.md
+# - DOCKER.md
+# - NEXT-STEPS.md
+
+# =============================================================================
+# GitHub Workflows - IMPORTANT: Keep .github/workflows/
+# =============================================================================
+# DO NOT ignore .github/ folder - it contains CI/CD workflows!
+# Only ignore personal GitHub config:
+.github/copilot-instructions.md
+
+# =============================================================================
+# MCP Configuration (Personal)
+# =============================================================================
 .mcp.json
+
+# =============================================================================
+# Node modules (if using npm for frontend tooling)
+# =============================================================================
+node_modules/
+npm-debug.log
+yarn-error.log
+package-lock.json
+yarn.lock
+
+# =============================================================================
+# Gradle (alternative to Maven)
+# =============================================================================
+.gradle/
+gradle-app.setting
+!gradle-wrapper.jar
+
+# =============================================================================
+# Security & Sensitive Files
+# =============================================================================
+# SSL/TLS certificates
+*.pem
+*.key
+*.crt
+*.cer
+*.p12
+*.jks
+*.keystore
+
+# Backup files
+*.backup
+*.bak
+*.old
+
+# Secret files
+secrets/
+credentials/
+*.secret
+
 
 

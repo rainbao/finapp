@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  # Spring Boot Application
+  # Uses your existing Supabase PostgreSQL database (no local postgres needed)
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: finapp-app
+    restart: unless-stopped
+    ports:
+      - "${SERVER_PORT:-8080}:8080"
+    env_file:
+      - .env
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - finapp-network
+
+networks:
+  finapp-network:
+    driver: bridge

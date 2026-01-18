@@ -1,0 +1,50 @@
+version: '3.8'
+
+# Production override for docker-compose
+# Use with: docker-compose -f docker-compose.yml -f docker-compose.prod.yml up
+
+services:
+  postgres:
+    environment:
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_DB: ${DB_NAME}
+    volumes:
+      - postgres_prod_data:/var/lib/postgresql/data
+    command: postgres -c shared_buffers=256MB -c max_connections=200
+
+  app:
+    environment:
+      # Production Database
+      DB_URL: ${DB_URL}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      
+      # Production JPA Settings
+      JPA_DDL_AUTO: validate
+      JPA_SHOW_SQL: "false"
+      
+      # Production JWT
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRATION: ${JWT_EXPIRATION:-3600000}
+      
+      # Production Cookie Settings
+      COOKIE_MAX_AGE: ${COOKIE_MAX_AGE:-3600}
+      COOKIE_SAME_SITE: ${COOKIE_SAME_SITE:-Strict}
+      COOKIE_SECURE: "true"
+      COOKIE_HTTP_ONLY: "true"
+      
+      # Production Server
+      SERVER_PORT: ${PORT:-8080}
+      
+      # Connection Pool - Production optimized
+      DB_POOL_SIZE_MIN: 10
+      DB_POOL_SIZE_MAX: 50
+      
+    ports:
+      - "${PORT:-8080}:8080"
+    restart: always
+
+volumes:
+  postgres_prod_data:
+    driver: local

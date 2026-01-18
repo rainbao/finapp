@@ -1,0 +1,63 @@
+version: '3.8'
+
+# Alternative configuration with local PostgreSQL database
+# Use this if you want to test with a local database instead of Supabase
+# Run with: docker-compose -f docker-compose.local-db.yml up
+
+services:
+  # Local PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: finapp-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: finapp
+      POSTGRES_USER: finapp_user
+      POSTGRES_PASSWORD: finapp_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U finapp_user -d finapp"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - finapp-network
+
+  # Spring Boot Application (using local postgres)
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: finapp-app
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      # Override to use local database
+      DB_URL: jdbc:postgresql://postgres:5432/finapp
+      DB_USERNAME: finapp_user
+      DB_PASSWORD: finapp_password
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - finapp-network
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  finapp-network:
+    driver: bridge
